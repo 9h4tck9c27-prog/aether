@@ -1,44 +1,48 @@
 // Turns a reading into a deck of cards, plus the "consulting the sky" steps shown before it.
+// Big text is plain and human; astrology terms sit in the small print with a definition.
 import { lonOf, sep, ayanamsa, signOf } from "./astro.js";
+import { PLANET_GLYPHS, NAKSHATRA_LORE } from "./data.js";
 import {
-  PLANET_GLYPHS, TRANSIT_TEXT, NATAL_TEXT, ASPECT_TEXT, FEEL_LINK, NAKSHATRA_LORE, CHIP_LINES,
-} from "./data.js";
+  pickBy, TRANSIT_HEADLINES, TRANSIT_PLAIN, FEEL_BRIDGE, PLAIN_PLANET, PLAIN_NATAL, ASPECT_DEFS, ASPECT_WORD,
+  NATAL_DEF, RISING_DEF, timingPill, NAKSHATRA_PLAIN, togetherPlain, spaceWeatherPlain, CLOSING_LINES,
+  THEME_PLAIN, OPEN_LINES, PLAIN_SINGULAR,
+} from "./voice.js";
 
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 const ASPECT_GLYPH = { conjunction: "☌", sextile: "⚹", square: "□", trine: "△", opposition: "☍" };
-const pointName = p => (p === "Ascendant" ? "your rising sign" : `your ${p}`);
 const glyph = p => (p === "Ascendant" ? "AC" : PLANET_GLYPHS[p]);
+const proper = p => (p === "Sun" || p === "Moon" ? `the ${p}` : p);
+const hours = n => (n === 1 ? "an hour" : `${n} hours`);
+function ordinal(n) { const s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
 
 // Is the aspect still building or easing off, and roughly when is it exact?
 function timing(s, natal, now) {
   const target = s.n === "Ascendant" ? natal.asc : natal.pos[s.n].lon;
   const orbAt = d => Math.abs(sep(lonOf(s.t, d), target) - s.asp.angle);
-  const later = new Date(now.getTime() + 864e5);
-  const o0 = orbAt(now), o1 = orbAt(later);
-  const speed = Math.abs(o0 - o1); // degrees per day the orb changes
-  if (o1 < o0 && speed > 0.001) {
-    const days = o0 / speed;
-    if (days < 0.6) return { text: "It is exact today, right at its peak.", building: true };
-    if (days < 1.5) return { text: "It peaks within a day, so this is building now.", building: true };
-    if (days < 60) return { text: `It is still building and peaks in about ${Math.round(days)} days.`, building: true };
-    return { text: "It is building very slowly; this is a long chapter, not a single day.", building: true };
-  }
-  if (o0 < 0.3) return { text: "It is exact today, right at its peak.", building: false };
-  return { text: "It is past its peak and easing off from here.", building: false };
+  const o0 = orbAt(now), o1 = orbAt(new Date(now.getTime() + 864e5));
+  const speed = Math.abs(o0 - o1);
+  if (o1 < o0 && speed > 0.001) return { days: o0 / speed, building: true };
+  return { days: o0 < 0.3 ? 0 : null, building: false };
 }
 
 function transitCard(s, r, natal) {
-  const harmony = String(s.asp.harmony);
+  const h = String(Math.sign(s.asp.harmony));
+  const n = PLAIN_NATAL[s.n];
   const t = timing(s, natal, r.now);
+  const headline = TRANSIT_HEADLINES[s.t][h].replace("{n}", n);
+  const plain = TRANSIT_PLAIN[h].replace("{P}", cap(PLAIN_PLANET[s.t])).replace("{is}", PLAIN_SINGULAR.has(s.t) ? "is" : "are").replace("{n}", n);
+  const point = s.n === "Ascendant" ? "your rising sign" : `your natal ${s.n}`;
   return {
     type: "transit",
-    kicker: s.n === "Ascendant" ? "Your rising sign" : "Your chart",
-    title: `${s.t === "Sun" || s.t === "Moon" ? "The " + s.t : s.t} ${s.asp.name === "conjunction" ? "meets" : s.asp.name === "opposition" ? "opposite" : s.asp.name === "square" ? "square" : s.asp.name === "trine" ? "trine" : "sextile"} ${pointName(s.n)}`,
-    glyphs: [glyph(s.t), ASPECT_GLYPH[s.asp.name], glyph(s.n)],
-    lead: FEEL_LINK[r.bucket][harmony],
-    body: [TRANSIT_TEXT[s.t], NATAL_TEXT[s.n]],
-    aspectLine: ASPECT_TEXT[s.asp.name],
-    timing: t.text,
+    kicker: s.n === "Ascendant" ? "How you come across" : `About ${n}`,
+    title: headline,
+    pill: timingPill(t.days, t.building),
+    lead: `${plain} ${FEEL_BRIDGE[r.bucket][h]}`,
+    tech: {
+      glyphs: [glyph(s.t), ASPECT_GLYPH[s.asp.name], glyph(s.n)],
+      name: `${cap(proper(s.t))} ${ASPECT_WORD[s.asp.name]} ${point}`,
+      text: `${ASPECT_DEFS[s.asp.name]} ${s.n === "Ascendant" ? RISING_DEF : NATAL_DEF}`,
+    },
     focus: { sky: [s.t], natal: [s.n], link: true, zoom: 0.8, tone: s.asp.harmony },
   };
 }
@@ -50,69 +54,76 @@ function moonCard(r) {
   const ay = ayanamsa(r.now);
   return {
     type: "moon",
-    kicker: "The Vedic sky",
-    title: `The Moon in ${nak.name}`,
-    lead: `${nak.name} is ${nak.gloss}, one of the 27 lunar mansions the Moon walks through each month.`,
-    body: [
-      `Its ruling deity is ${deity}, and its symbol is ${symbol}. Today is the ${sig.phase.tithi.name} tithi, the ${ordinal(sig.phase.tithi.number)} lunar day of the ${sig.phase.tithi.paksha}.`,
-      `In the Western zodiac she is in ${sig.moonSign}, and moves into a new sign in about ${sig.moonLeft === 1 ? "an hour" : sig.moonLeft + " hours"}. The mood moves with her.`,
-    ],
+    kicker: "Tonight's Moon",
+    title: NAKSHATRA_PLAIN[nak.index],
+    pill: `${sig.phase.name}, ${Math.round(sig.phase.illum * 100)}% lit`,
+    lead: `The Moon changes signs every two or three days, and the mood of the world shifts with her. Her next move is in about ${hours(sig.moonLeft)}.`,
     phase: sig.phase,
+    tech: {
+      name: `Moon in ${nak.name}, ${nak.gloss}`,
+      text: `In Vedic astrology the Moon walks through 27 "lunar mansions" each month. ${nak.name} is ruled by ${deity}; its symbol is ${symbol}. Today is the ${sig.phase.tithi.name} tithi (the ${ordinal(sig.phase.tithi.number)} lunar day of the ${sig.phase.tithi.paksha}). In the Western zodiac the Moon is in ${sig.moonSign}.`,
+    },
     focus: { sky: ["Moon"], arc: [sidStart + ay, sidStart + span + ay], zoom: 0.85 },
   };
 }
 
-function ordinal(n) { const s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
-
 function togetherCard(r, kp) {
   const c = r.sig.collective[0];
-  const body = [];
-  if (c) body.push(`${c.t} ${c.asp.verb} ${c.n} for everyone on Earth today. ${ASPECT_TEXT[c.asp.name]}`);
-  if (r.sig.retro.includes("Mercury")) body.push("Mercury is retrograde too, so crossed wires and second thoughts are everywhere right now.");
+  const sw = spaceWeatherPlain(kp);
+  const techBits = [];
+  if (c) techBits.push(`${cap(proper(c.t))} ${ASPECT_WORD[c.asp.name]} ${proper(c.n)} in today's sky. ${ASPECT_DEFS[c.asp.name]}`);
+  if (r.sig.retro.includes("Mercury")) techBits.push("Mercury is retrograde, which astrologers link to crossed wires and second thoughts.");
+  if (kp != null) techBits.push(`Planetary K-index ${kp.toFixed(1)} from NOAA's Space Weather Prediction Center.`);
   return {
     type: "together",
     kicker: "Everyone under this sky",
     title: "It's not just you",
     crowd: r.crowd,
+    lead: [togetherPlain(c), sw].filter(Boolean).join(" "),
     kp,
-    body,
+    tech: techBits.length ? { name: "In the sky", text: techBits.join(" ") } : null,
     focus: c ? { sky: [c.t, c.n], link: true, zoom: 0.7, tone: c.asp.harmony } : { wide: true },
   };
 }
 
+function closingLine(r) {
+  const seed = Math.floor(r.now.getTime() / 864e5) + (r.quote || "").length + Math.round(r.feel * 10);
+  return pickBy(CLOSING_LINES[r.bucket], seed);
+}
+
 export function buildDeck(r, natal, kp) {
-  const cards = [];
-  const firstChip = (r.chips || [])[0];
-  cards.push({
+  const seed = Math.floor(r.now.getTime() / 36e5);
+  const theme = (r.themes || [])[0];
+  const cards = [{
     type: "open",
     kicker: r.now.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" }),
     title: r.headline,
     quote: r.quote,
-    chipLine: firstChip ? CHIP_LINES[firstChip] : null,
-    cond: r.cond,
+    lead: theme ? THEME_PLAIN[theme][r.bucket] : pickBy(OPEN_LINES[r.bucket], seed),
     focus: { wide: true, natalGlow: true },
-  });
-  const personal = r.ranked.slice(0, 2);
-  for (const s of personal) cards.push(transitCard(s, r, natal));
+  }];
+  for (const s of r.ranked.slice(0, 2)) cards.push(transitCard(s, r, natal));
   cards.push(moonCard(r));
   cards.push(togetherCard(r, kp));
-  cards.push({ type: "echo", kicker: "An ancient echo", title: r.echo.text, source: r.echo.source, focus: { wide: true, far: true } });
-  cards.push({ type: "close", kicker: "For the rest of today", title: r.themeLine || r.closing, body: r.themeLine ? [r.closing] : [], bucket: r.bucket, focus: { wide: true } });
+  const line = closingLine(r);
+  const links = [
+    ...r.ranked.slice(0, 3).map(s => [["sky", s.t], ["natal", s.n]]),
+    ...r.sig.collective.slice(0, 2).map(s => [["sky", s.t], ["sky", s.n]]),
+  ];
+  cards.push({ type: "close", kicker: "To carry with you", line, bucket: r.bucket, focus: { wide: true, showLinks: links } });
   return cards;
 }
 
-// Real, specific steps for the "consulting the sky" sequence.
+// Steps shown while the sky is "consulting". Plain words, real details.
 export function consultSteps(r, natal, profile, kp) {
-  const time = r.now.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
   const aspects = r.sig.personal.length + r.sig.collective.length;
-  const author = r.echo.source.split(",")[0];
   return [
-    `Placing all ten planets for ${time}`,
-    `Laying today's sky over the sky of ${new Date(natal.date).getFullYear()}`,
-    `Measuring the angles: ${aspects} ${aspects === 1 ? "aspect" : "aspects"} in orb`,
-    `Walking the Moon through ${r.sig.moonNak.name}`,
-    kp != null ? `Reading the Sun's weather: Kp ${kp.toFixed(1)}` : "Listening to the space weather",
-    `Asking ${author} for a second opinion`,
+    "Finding every planet, right now",
+    `Laying today's sky over the sky you were born under`,
+    `Measuring the angles between them: ${aspects} ${aspects === 1 ? "connection" : "connections"} found`,
+    `Following the Moon into ${r.sig.moonNak.name}`,
+    kp != null ? "Checking the Sun's weather" : "Listening to the quiet between the stars",
+    "Putting it into words",
   ];
 }
 

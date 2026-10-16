@@ -1,5 +1,6 @@
-import { CITIES, MOOD_WORDS, FEELING_CHIPS } from "./data.js";
+import { CITIES, MOOD_WORDS } from "./data.js";
 import { buildDeck, consultSteps } from "./reading.js";
+import { pickBy, HOME_HEADLINES, HOME_SUPPORT, ASPECT_WORD, CLOSING_LINES } from "./voice.js";
 import {
   natalChart, todaySignals, homeForecast, positions, writeReading, conditionOf, CONDITIONS, signOf, nakshatraOf, dayKey, moonPhase,
 } from "./astro.js";
@@ -91,7 +92,7 @@ if (needsPermission) {
   // Tapping the sphere also asks, once.
   $("#sky").addEventListener("pointerup", () => { if (!tilting && !store.get("tiltDenied", false)) requestMotion(false); });
 } else if ("DeviceOrientationEvent" in window) startTilt();
-function showTiltHint() {
+function showTiltHint() { return;
   if (needsPermission && !tilting && !store.get("tiltDenied", false) && !document.body.classList.contains("onboarding")) $("#tiltBtn").hidden = false;
 }
 
@@ -127,25 +128,17 @@ function renderHome() {
   const sig = todaySignals(natal, now);
   sky.setSky(sig.sky);
   const f = homeForecast(sig);
-  const opts = { weekday: "long", day: "numeric", month: "long" };
-  $("#dateline").textContent = `${now.toLocaleDateString(undefined, opts)}. ${sig.phase.name} Moon in ${sig.moonSign}.`;
-  $("#condIcon").innerHTML = ICONS[f.cond];
-  $("#condLabel").textContent = CONDITIONS[f.cond].label;
-  $("#forecastText").textContent = f.text;
-
-  const pc = conditionOf(sig.personal.length ? sig.personal : sig.collective);
-  const cc = conditionOf(sig.collective);
-  const pv = Math.min(1, (sig.personal[0]?.score || 0.3) / 1.8);
-  const cv = Math.min(1, (sig.collective[0]?.score || 0.3) / 1.8);
-  const earth = kp != null
-    ? { v: kp / 9, w: kp >= 5 ? "Stormy" : kp >= 4 ? "Unsettled" : "Calm", n: "Space weather" }
-    : { v: sig.phase.illum, w: `${Math.round(sig.phase.illum * 100)}% lit`, n: "The Moon" };
-  const word = c => CONDITIONS[c].label.replace(" sky", "");
-  $("#dials").innerHTML = [
-    { n: "You", w: word(pc), v: pv },
-    { n: "Everyone", w: word(cc), v: cv },
-    earth,
-  ].map(d => `<div class="dial">${dialSvg(d.v)}<span class="dial-word">${esc(d.w)}</span><span class="dial-name">${esc(d.n)}</span></div>`).join("");
+  const daySeed = Math.floor((now.getTime() - now.getTimezoneOffset() * 6e4) / 864e5);
+  $("#dateline").textContent = now.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
+  $("#forecastText").textContent = pickBy(HOME_HEADLINES[f.cond], daySeed);
+  $("#forecastSupport").textContent = pickBy(HOME_SUPPORT[f.cond], daySeed + 1);
+  // The astrology behind it, in small print.
+  const top = sig.personal[0];
+  const bits = [];
+  if (top) bits.push(`${top.t === "Sun" || top.t === "Moon" ? "The " + top.t : top.t} ${ASPECT_WORD[top.asp.name]} your natal ${top.n === "Ascendant" ? "rising sign" : top.n}`);
+  bits.push(`Moon in ${sig.moonSign} and the Vedic mansion ${sig.moonNak.name}`);
+  bits.push(`${sig.phase.name}, ${Math.round(sig.phase.illum * 100)}% lit`);
+  $("#forecastTech").textContent = bits.join(" · ");
 }
 
 // ---------- Onboarding ----------
@@ -244,10 +237,6 @@ function openCheckin() {
     <p class="feel-word" id="feelWord"></p>
     <input class="feel-range" id="feel" type="range" min="0" max="100" value="55" aria-label="How today feels, from heavy to golden">
     <div class="ends"><span>Heavy</span><span>Golden</span></div>
-    <p class="chips-label">Anything else in the air? Pick any that fit.</p>
-    <div class="chips small" id="chips">
-      ${FEELING_CHIPS.map(c => `<button type="button" class="chip" aria-pressed="false" data-v="${c}">${c}</button>`).join("")}
-    </div>
     <textarea id="words" placeholder="Tell the sky what happened, in a sentence or two (optional)" maxlength="400"></textarea>
     <p class="privacy-note">Your words stay on this phone. They are never sent anywhere.</p>
   `, null, `<button class="primary" id="readBtn">Read my sky</button>`);
@@ -260,12 +249,10 @@ function openCheckin() {
     tint.style.opacity = Math.abs(v - 0.5) * 1.6;
   };
   feel.oninput = update; update();
-  $("#chips").onclick = e => { const b = e.target.closest(".chip"); if (b) b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") !== "true"); };
   $("#readBtn").onclick = () => {
-    const chips = [...document.querySelectorAll("#chips .chip[aria-pressed='true']")].map(b => b.dataset.v);
     const text = $("#words").value;
-    const r = writeReading({ feel: feel.value / 100, chips, text, natal, profile, kp });
-    const entry = { id: Date.now(), day: dayKey(), feel: feel.value / 100, chips, text: text.trim(), headline: r.headline, cond: r.cond, bottled: false };
+    const r = writeReading({ feel: feel.value / 100, chips: [], text, natal, profile, kp });
+    const entry = { id: Date.now(), day: dayKey(), feel: feel.value / 100, chips: [], text: text.trim(), headline: r.headline, cond: r.cond, bottled: false };
     entries.push(entry); store.set("entries", entries);
     closeSheet();
     startReading(r, entry, { consult: true });
@@ -293,7 +280,7 @@ function startReading(r, entry, { consult = true } = {}) {
     ...r.sig.personal.slice(0, 6).map(s => [["sky", s.t], ["natal", s.n === "Ascendant" && natal.asc == null ? "Sun" : s.n]]),
     ...r.sig.collective.slice(0, 4).map(s => [["sky", s.t], ["sky", s.n]]),
   ];
-  sky.consult(pairs.length ? pairs : [[["sky", "Sun"], ["sky", "Moon"]]]);
+  sky.consult(pairs.length ? pairs : [[["sky", "Sun"], ["sky", "Moon"]]], steps.length * CONSULT_STEP_MS);
   let i = 0;
   const stepEl = $("#consultStep"), fill = $("#consultFill");
   fill.style.transitionDuration = "0s"; fill.style.width = "0%"; void fill.offsetWidth; fill.style.transitionDuration = "";
@@ -328,9 +315,11 @@ function moonSvg(phase) {
   return `<svg class="moon-svg" viewBox="0 0 80 80" aria-hidden="true"><circle cx="${cx}" cy="${cy}" r="${r}" class="moon-dark"/><path d="${lit}" class="moon-lit" ${waxing ? "" : `transform="translate(80 0) scale(-1 1)"`}/></svg>`;
 }
 
-function gaugeSvg(v) {
-  const r = 30, len = Math.PI * r;
-  return `<svg class="gauge" viewBox="0 0 80 46" aria-hidden="true"><path d="M10 40 A30 30 0 0 1 70 40" class="gauge-track"/><path d="M10 40 A30 30 0 0 1 70 40" class="gauge-fill" style="stroke-dasharray:${len};--off:${len * (1 - Math.min(1, v))};stroke-dashoffset:${len}"/></svg>`;
+// Small print: the astrology behind a card, with a definition.
+function techBlock(tech) {
+  if (!tech) return "";
+  const glyphs = tech.glyphs ? `<span class="tech-glyphs" aria-hidden="true">${tech.glyphs.map((g, i) => `<span${i === 1 ? ' class="asp"' : ""}>${g}</span>`).join("")}</span>` : "";
+  return `<div class="tech"><p class="tech-name">${glyphs}${esc(tech.name)}</p><p class="tech-text">${esc(tech.text)}</p></div>`;
 }
 
 function renderCard(c, i, r) {
@@ -341,41 +330,36 @@ function renderCard(c, i, r) {
     inner = kicker
       + rv(`<h2 class="card-title big">${esc(c.title)}</h2>`, d++)
       + (c.quote ? rv(`<p class="quote">${esc(c.quote)}</p>`, d++) : "")
-      + (c.chipLine ? rv(`<p class="lead">${esc(c.chipLine)}</p>`, d++) : "")
-      + rv(`<p class="condition"><span class="cond-icon">${ICONS[c.cond]}</span>${esc(CONDITIONS[c.cond].label)}</p>`, d++)
-      + rv(`<button class="swipe-big" type="button" data-act="next"><span>Swipe to see your sky</span><span class="chevs" aria-hidden="true"><i>›</i><i>›</i><i>›</i></span></button>`, d++);
+      + rv(`<p class="lead">${esc(c.lead)}</p>`, d++)
+      + rv(`<button class="tap-big" type="button" data-act="next"><span>Tap to continue</span><span class="chevs" aria-hidden="true"><i>›</i><i>›</i><i>›</i></span></button>`, d++);
   } else if (c.type === "transit") {
     inner = kicker
-      + rv(`<div class="glyphs" aria-hidden="true"><span>${c.glyphs[0]}</span><span class="asp">${c.glyphs[1]}</span><span>${c.glyphs[2]}</span></div>`, d++)
       + rv(`<h2 class="card-title">${esc(c.title)}</h2>`, d++)
+      + rv(`<p class="pill">${esc(c.pill)}</p>`, d++)
       + rv(`<p class="lead">${esc(c.lead)}</p>`, d++)
-      + rv(`<p class="aspect-line">${esc(c.aspectLine)}</p>`, d++)
-      + c.body.map(b => rv(`<p class="body">${esc(b)}</p>`, d++)).join("")
-      + rv(`<p class="timing">${esc(c.timing)}</p>`, d++);
+      + rv(techBlock(c.tech), d++);
   } else if (c.type === "moon") {
     inner = kicker
-      + rv(`<div class="moon-row">${moonSvg(c.phase)}<span>${esc(c.phase.name)}<br><small>${Math.round(c.phase.illum * 100)}% lit</small></span></div>`, d++)
-      + rv(`<h2 class="card-title">${esc(c.title)}</h2>`, d++)
+      + rv(`<div class="moon-row">${moonSvg(c.phase)}<h2 class="card-title">${esc(c.title)}</h2></div>`, d++)
+      + rv(`<p class="pill">${esc(c.pill)}</p>`, d++)
       + rv(`<p class="lead">${esc(c.lead)}</p>`, d++)
-      + c.body.map(b => rv(`<p class="body">${esc(b)}</p>`, d++)).join("");
+      + rv(techBlock(c.tech), d++);
   } else if (c.type === "together") {
     inner = kicker
       + rv(`<h2 class="card-title">${esc(c.title)}</h2>`, d++)
-      + rv(`<div class="crowd-big"><strong data-count="${c.crowd.count}">0</strong><span>people near you logged a ${esc(c.crowd.label)} day too</span><em>Sample number in this prototype; the live count comes later.</em></div>`, d++)
-      + (c.kp != null ? rv(`<div class="kp-row">${gaugeSvg(c.kp / 9)}<span><b>Kp ${c.kp.toFixed(1)}</b><br>${c.kp >= 5 ? "A geomagnetic storm is washing over Earth." : c.kp >= 4 ? "Earth's magnetic field is unsettled." : "Space weather is calm right now."}</span></div>`, d++) : "")
-      + c.body.map(b => rv(`<p class="body">${esc(b)}</p>`, d++)).join("");
-  } else if (c.type === "echo") {
-    inner = kicker
-      + rv(`<blockquote class="echo-big">${esc(c.title)}</blockquote>`, d++)
-      + rv(`<p class="cite">${esc(c.source)}</p>`, d++);
+      + rv(`<div class="crowd-big"><strong data-count="${c.crowd.count}">0</strong><span>people near you logged a ${esc(c.crowd.label)} day too</span></div>`, d++)
+      + rv(`<p class="lead">${esc(c.lead)}</p>`, d++)
+      + rv(techBlock(c.tech ? { ...c.tech, text: c.tech.text + " The people count is a sample in this prototype." } : { name: "A note", text: "The people count is a sample in this prototype." }), d++);
   } else if (c.type === "close") {
-    const main = c.bucket === "heavy" ? `<button class="primary" data-act="breathe">Breathe with the sky</button>`
-      : c.bucket === "golden" ? `<button class="primary" data-act="bottle">Bottle this</button>`
-        : `<button class="primary" data-act="done">Done</button>`;
+    const saved = reading.entry.bottled;
     inner = kicker
-      + rv(`<h2 class="card-title">${esc(c.title)}</h2>`, d++)
-      + c.body.map(b => rv(`<p class="lead">${esc(b)}</p>`, d++)).join("")
-      + rv(`<div class="card-actions">${main}<div class="row"><button class="ghost" data-act="share">Share this sky</button><button class="ghost" data-act="${c.bucket === "mixed" ? "journal" : "done"}">${c.bucket === "mixed" ? "Journal" : "Done"}</button></div><p class="bottled" data-bottled hidden>A new star in your journal.</p></div>`, d++)
+      + rv(`<blockquote class="closing-line">${esc(c.line.text)}</blockquote>`, d++)
+      + (c.line.author ? rv(`<p class="cite">${esc(c.line.author)}${c.line.work ? `, <i>${esc(c.line.work)}</i>` : ""}</p>`, d++) : "")
+      + rv(`<div class="card-actions">
+          <button class="primary share-btn" data-act="share"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4"/><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></svg>Share</button>
+          <div class="row"><button class="ghost" data-act="save"${saved ? " disabled" : ""}>${saved ? "Saved" : "Save this reading"}</button><button class="ghost" data-act="done">Done</button></div>
+          ${c.bucket === "heavy" ? `<button class="text-btn" data-act="breathe">Take a slow breath with the sky</button>` : ""}
+        </div>`, d++)
       + (c.bucket === "golden" ? rv(`<div class="card-tip"><button class="tip-btn" type="button"><span class="tip-heart" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20.5s-7.5-4.6-7.5-10.3A4.3 4.3 0 0 1 12 7.4a4.3 4.3 0 0 1 7.5 2.8c0 5.7-7.5 10.3-7.5 10.3z"/></svg></span><span class="tip-text"><b>Chip in to keep Æther free</b><small>No ads, no paywall. Tips keep the sky turning.</small></span><span class="tip-arrow" aria-hidden="true">›</span></button></div>`, d++) : "");
   }
   return `<article class="card card-${c.type}" aria-roledescription="card" aria-label="Card ${i + 1} of ${reading.deck.length}"><div class="card-inner"><div class="card-content">${inner}</div></div></article>`;
@@ -387,15 +371,20 @@ function showDeck() {
   cards.innerHTML = deck.map((c, i) => renderCard(c, i, r)).join("");
   $("#bars").innerHTML = deck.map(() => "<span></span>").join("");
   cards.hidden = false;
-  cards.scrollLeft = 0;
   reading.index = -1;
   fitCards();
   setActive(0);
-  cards.onscroll = () => { clearTimeout(cards._t); cards._t = setTimeout(() => setActive(Math.round(cards.scrollLeft / cards.clientWidth)), 50); };
+  // Tap anywhere to continue; tap the left edge to go back. Swiping also works.
   cards.onclick = e => {
     if (e.target.closest("button, a, input, label, textarea")) return;
-    const x = e.clientX / innerWidth;
-    if (x > 0.62) goCard(1); else if (x < 0.22) goCard(-1);
+    if (e.clientX / innerWidth < 0.22) goCard(-1); else goCard(1);
+  };
+  let sx = null, sy = null;
+  cards.ontouchstart = e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; };
+  cards.ontouchend = e => {
+    if (sx == null) return;
+    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy; sx = null;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.3) { e.preventDefault(); goCard(dx < 0 ? 1 : -1); }
   };
   cards.querySelectorAll("[data-act]").forEach(b => (b.onclick = () => cardAction(b)));
 }
@@ -420,19 +409,18 @@ function placeScrim(card) {
 $("#nextHint").onclick = () => goCard(1);
 
 function goCard(dir) {
-  const cards = $("#cards");
-  const n = Math.max(0, Math.min(reading.deck.length - 1, reading.index + dir));
-  cards.scrollTo({ left: n * cards.clientWidth, behavior: "smooth" });
+  if (!reading) return;
+  setActive(Math.max(0, Math.min(reading.deck.length - 1, reading.index + dir)));
 }
 
 function setActive(i) {
   if (!reading || i === reading.index || i < 0 || i >= reading.deck.length) return;
   reading.index = i;
   const els = document.querySelectorAll("#cards .card");
-  els.forEach((el, j) => { el.classList.toggle("active", j === i); if (j === i) el.querySelector(".card-inner").scrollTop = 0; });
+  els.forEach((el, j) => el.classList.toggle("active", j === i));
+  document.querySelectorAll("#bars span").forEach((b, j) => (b.className = j < i ? "done" : j === i ? "on" : ""));
   $("#nextHint").hidden = i === 0 || i === reading.deck.length - 1;
   placeScrim(els[i]);
-  document.querySelectorAll("#bars span").forEach((b, j) => (b.className = j < i ? "done" : j === i ? "on" : ""));
   sky.focus(reading.deck[i].focus);
   const num = els[i].querySelector("[data-count]");
   if (num && !num.dataset.done) countUp(num);
@@ -452,14 +440,13 @@ function countUp(el) {
 function cardAction(b) {
   const act = b.dataset.act;
   if (act === "next") return goCard(1);
-  if (act === "share") return shareCard(reading.r);
+  if (act === "share") return shareCard(reading.r, reading.deck[reading.deck.length - 1].line);
   if (act === "breathe") return startRitual();
-  if (act === "journal") { endReading(); return openJournal(); }
   if (act === "done") return endReading();
-  if (act === "bottle") {
+  if (act === "save") {
     reading.entry.bottled = true; store.set("entries", entries);
-    sky.bloom(); b.disabled = true; b.textContent = "Bottled";
-    b.closest(".card-actions").querySelector("[data-bottled]").hidden = false;
+    sky.bloom(); b.disabled = true; b.textContent = "Saved";
+    toast("Saved to your journal.");
   }
 }
 
@@ -507,51 +494,49 @@ function wrap(ctx, text, maxW) {
   for (const w of words) { const t = line ? line + " " + w : w; if (ctx.measureText(t).width > maxW && line) { lines.push(line); line = w; } else line = t; }
   if (line) lines.push(line); return lines;
 }
-async function renderShareImage(r) {
+async function renderShareImage(r, line) {
   try { await document.fonts.load('400 64px "Fraunces"'); await document.fonts.load('italic 400 40px "Fraunces"'); await document.fonts.load('500 30px "Figtree"'); } catch { }
+  line = line || { text: r.headline };
   const W = 1080, H = 1350, c = document.createElement("canvas"); c.width = W; c.height = H;
   const g = c.getContext("2d");
-  const grads = { heavy: ["#140c28", "#3a4a80"], mixed: ["#140c28", "#56449a"], golden: ["#2a1d52", "#f2a88f"] }[r.bucket];
+  const grads = { heavy: ["#120a26", "#34407a"], mixed: ["#120a26", "#4f3f92"], golden: ["#271a4e", "#ee9f8a"] }[r.bucket];
   const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, grads[0]); bg.addColorStop(1, grads[1]);
   g.fillStyle = bg; g.fillRect(0, 0, W, H);
-  const halo = g.createRadialGradient(W / 2, 470, 10, W / 2, 470, 520);
-  halo.addColorStop(0, "rgba(184,164,255,.35)"); halo.addColorStop(1, "rgba(184,164,255,0)");
+  const cy = 400;
+  const halo = g.createRadialGradient(W / 2, cy, 10, W / 2, cy, 480);
+  halo.addColorStop(0, "rgba(184,164,255,.32)"); halo.addColorStop(1, "rgba(184,164,255,0)");
   g.fillStyle = halo; g.fillRect(0, 0, W, H);
-  // Stars
-  for (let i = 0; i < 140; i++) { g.fillStyle = `rgba(255,255,255,${Math.random() * .6 + .1})`; g.beginPath(); g.arc(Math.random() * W, Math.random() * H * .8, Math.random() * 1.8 + .3, 0, 7); g.fill(); }
-  // Rings
-  const ringGrad = () => { const rg = g.createLinearGradient(240, 0, 840, 0); [["#B8A4FF", 0], ["#9EE6D4", .35], ["#FFB89A", .7], ["#F7C8E8", 1]].forEach(([col, s]) => rg.addColorStop(s, col)); return rg; };
-  const ell = (rx, ry, rot, w, a) => { g.save(); g.translate(W / 2, 470); g.rotate(rot); g.globalAlpha = a; g.strokeStyle = ringGrad(); g.lineWidth = w; g.beginPath(); g.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2); g.stroke(); g.restore(); };
-  ell(330, 110, -0.18, 5, 1); ell(330, 150, 0.32, 2.5, .55); ell(120, 340, 0.1, 2, .4); ell(220, 74, -0.18, 2.5, .6);
-  // Planets on the main ring at their real longitudes
+  let s0 = Math.floor(Date.now() / 864e5); const rnd = () => (s0 = (s0 * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 150; i++) { g.fillStyle = `rgba(255,255,255,${rnd() * .55 + .1})`; g.beginPath(); g.arc(rnd() * W, rnd() * H * .75, rnd() * 1.8 + .3, 0, 7); g.fill(); }
+  const ringGrad = () => { const rg = g.createLinearGradient(240, 0, 840, 0); [["#B8A4FF", 0], ["#9EE6D4", .35], ["#FFB89A", .7], ["#F7C8E8", 1]].forEach(([col, st]) => rg.addColorStop(st, col)); return rg; };
+  const ell = (rx, ry, rot, w, al) => { g.save(); g.translate(W / 2, cy); g.rotate(rot); g.globalAlpha = al; g.strokeStyle = ringGrad(); g.lineWidth = w; g.beginPath(); g.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2); g.stroke(); g.restore(); };
+  ell(300, 100, -0.18, 5, 1); ell(300, 136, 0.32, 2.5, .55); ell(110, 300, 0.1, 2, .4); ell(200, 66, -0.18, 2.5, .6);
+  const pt = lon => { const a = lon * Math.PI / 180, x = Math.cos(a) * 300, y = Math.sin(a) * 100; return [W / 2 + x * Math.cos(-0.18) - y * Math.sin(-0.18), cy + x * Math.sin(-0.18) + y * Math.cos(-0.18)]; };
   for (const [p, v] of Object.entries(r.sig.sky)) {
-    const a = v.lon * Math.PI / 180, x = Math.cos(a) * 330, y = Math.sin(a) * 110;
-    const px = W / 2 + x * Math.cos(-0.18) - y * Math.sin(-0.18), py = 470 + x * Math.sin(-0.18) + y * Math.cos(-0.18);
-    const big = p === "Sun" || p === "Moon";
-    const pg = g.createRadialGradient(px, py, 0, px, py, big ? 34 : 22); pg.addColorStop(0, "rgba(255,255,255,1)"); pg.addColorStop(1, "rgba(255,255,255,0)");
-    g.fillStyle = pg; g.beginPath(); g.arc(px, py, big ? 34 : 22, 0, 7); g.fill();
+    const [px, py] = pt(v.lon), big = p === "Sun" || p === "Moon";
+    const pg = g.createRadialGradient(px, py, 0, px, py, big ? 32 : 20); pg.addColorStop(0, "rgba(255,255,255,1)"); pg.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = pg; g.beginPath(); g.arc(px, py, big ? 32 : 20, 0, 7); g.fill();
   }
-  const core = g.createRadialGradient(W / 2, 470, 0, W / 2, 470, 60); core.addColorStop(0, "#fff"); core.addColorStop(1, "rgba(255,255,255,0)");
-  g.fillStyle = core; g.beginPath(); g.arc(W / 2, 470, 60, 0, 7); g.fill();
-  // Text
-  g.fillStyle = "rgba(247,242,251,.7)"; g.font = '500 30px "Figtree", sans-serif';
-  g.fillText(new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" }), 90, 110);
-  g.fillText(CONDITIONS[r.cond].label, 90, 152);
-  g.fillStyle = "#F7F2FB"; g.font = '400 66px "Fraunces", Georgia, serif';
-  const lines = wrap(g, r.headline, W - 180).slice(0, 4);
-  lines.forEach((l, i) => g.fillText(l, 90, 870 + i * 80));
-  g.fillStyle = "rgba(247,242,251,.75)"; g.font = '400 30px "Figtree", sans-serif';
-  const moonBits = `Moon in ${r.sig.moonSign}, in ${r.sig.moonNak.name}, ${r.sig.moonNak.gloss}.`;
-  wrap(g, moonBits, W - 180).slice(0, 2).forEach((l, i) => g.fillText(l, 90, 890 + lines.length * 80 + 20 + i * 42));
-  g.fillStyle = "#F7F2FB"; g.font = 'italic 400 44px "Fraunces", Georgia, serif'; g.fillText("æther", 90, H - 90);
-  g.fillStyle = "rgba(247,242,251,.6)"; g.font = '400 26px "Figtree", sans-serif';
-  g.textAlign = "right"; g.fillText(location.host, W - 90, H - 94);
+  const core = g.createRadialGradient(W / 2, cy, 0, W / 2, cy, 56); core.addColorStop(0, "#fff"); core.addColorStop(1, "rgba(255,255,255,0)");
+  g.fillStyle = core; g.beginPath(); g.arc(W / 2, cy, 56, 0, 7); g.fill();
+  // The line, big and centred
+  g.textAlign = "center";
+  let size = 70, lines;
+  do { g.font = `italic 400 ${size}px "Fraunces", Georgia, serif`; lines = wrap(g, line.text, W - 200); size -= 4; } while (lines.length > 5 && size > 44);
+  const lh = size * 1.3, top = 800 - (lines.length * lh) / 2 + lh / 2;
+  g.fillStyle = "#F7F2FB";
+  lines.forEach((l, i) => g.fillText(l, W / 2, top + i * lh));
+  if (line.author) { g.fillStyle = "rgba(247,242,251,.7)"; g.font = '500 30px "Figtree", sans-serif'; g.fillText(`— ${line.author}`, W / 2, top + lines.length * lh + 20); }
+  g.fillStyle = "rgba(247,242,251,.6)"; g.font = '500 28px "Figtree", sans-serif';
+  g.fillText(new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" }), W / 2, 110);
+  g.fillStyle = "#F7F2FB"; g.font = 'italic 400 46px "Fraunces", Georgia, serif'; g.fillText("æther", W / 2, H - 120);
+  g.fillStyle = "rgba(247,242,251,.6)"; g.font = '400 26px "Figtree", sans-serif'; g.fillText(location.host, W / 2, H - 76);
   return new Promise(res => c.toBlob(res, "image/png"));
 }
-async function shareCard(r) {
-  const blob = await renderShareImage(r);
+async function shareCard(r, line) {
+  const blob = await renderShareImage(r, line);
   const file = new File([blob], "aether-sky.png", { type: "image/png" });
-  const text = `My sky today on Æther. ${location.origin}`;
+  const text = `${line && line.text ? "“" + line.text + "”" + (line.author ? " — " + line.author : "") + "\n\n" : ""}My sky today on Æther: ${location.origin}`;
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try { await navigator.share({ files: [file], text }); } catch { /* cancelled */ }
     return;
@@ -602,7 +587,7 @@ function openJournal() {
     </div>
     <div class="cal">${cells}</div>
     <div class="legend"><span>Heavy</span><span class="bar"></span><span>Golden</span></div>
-    <div id="dayDetail">${entries.length ? `<p class="empty">${stars ? `${stars} golden ${stars === 1 ? "day" : "days"} bottled so far. ` : ""}Tap a day to reread it.</p>` : `<p class="empty">Your first check-in will appear here as a dot of colour.</p>`}</div>
+    <div id="dayDetail">${entries.length ? `<p class="empty">${stars ? `${stars} ${stars === 1 ? "reading" : "readings"} saved so far. ` : ""}Tap a day to reread it.</p>` : `<p class="empty">Your first check-in will appear here as a dot of colour.</p>`}</div>
     <div class="linkrow">
       <button class="ghost" id="exportBtn">Save a backup</button>
       <label class="ghost" style="cursor:pointer">Restore a backup<input type="file" id="importInput" accept="application/json" hidden></label>
@@ -615,7 +600,7 @@ function openJournal() {
     const list = byDay[b.dataset.day] || [];
     $("#dayDetail").innerHTML = list.length ? list.slice().reverse().map(en => `
       <div class="entry">
-        <div class="when">${new Date(en.id).toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}. ${moodWord(en.feel)}${en.bottled ? ", bottled" : ""}</div>
+        <div class="when">${new Date(en.id).toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}. ${moodWord(en.feel)}${en.bottled ? ", saved" : ""}</div>
         <div class="h">${esc(en.headline)}</div>
         ${en.text ? `<p class="quote" style="font-family:var(--serif);font-style:italic">${esc(en.text)}</p>` : ""}
         <button class="ghost small-btn" data-open="${en.id}">Open this reading</button>
@@ -734,7 +719,7 @@ function openTip(e) {
 }
 
 // ---------- Wiring ----------
-$("#checkinBtn").onclick = openCheckin;
+$("#checkinBtn").onclick = () => { requestMotion(true); openCheckin(); };
 $("#journalBtn").onclick = openJournal;
 $("#menuBtn").onclick = openMenu;
 document.addEventListener("click", e => { if (e.target.closest(".tip-link, .tip-btn")) openTip(e); });

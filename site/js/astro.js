@@ -285,5 +285,5 @@ export function writeReading({ feel, chips, text, natal, profile, kp, now = new 
       ? "Days like this are worth keeping. Bottle it, and it will glow in your journal."
       : `Notice what shifts when the Moon moves on, in about ${sig.moonLeft === 1 ? "an hour" : sig.moonLeft + " hours"}.`;
 
-  return { bucket, cond, headline, quote: (text || "").trim(), why, themeLine, moonLine, whoElse, crowd, echo, closing, chips, sig, ranked, themes, now };
+  return { feel, bucket, cond, headline, quote: (text || "").trim(), why, themeLine, moonLine, whoElse, crowd, echo, closing, chips, sig, ranked, themes, now };
 }

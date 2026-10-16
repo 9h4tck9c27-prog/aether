@@ -340,6 +340,19 @@ export class Sky {
     }
     this.far = !!(spec && spec.far);
 
+    // Final card: draw every connection in today's reading, one after another, and keep them.
+    if (spec && spec.showLinks) {
+      clearTimeout(this._linksTimer);
+      const list = spec.showLinks.slice();
+      const step = () => {
+        if (this.focusSpec !== spec || !list.length) return;
+        const pr = list.shift();
+        this.addLink(this.localPos(pr[0][0], pr[0][1]), this.localPos(pr[1][0], pr[1][1]), { duration: 1.1 });
+        this._linksTimer = setTimeout(step, 450);
+      };
+      this._linksTimer = setTimeout(step, 400);
+    }
+
     if (spec && spec.link) {
       const pts = [];
       for (const p of spec.sky || []) pts.push(this.localPos("sky", p));
@@ -349,9 +362,11 @@ export class Sky {
   }
 
   // ---------- Consult: the sky "calculating" before a reading ----------
-  consult(pairs) {
+  consult(pairs, duration = 5700) {
     this.focus(null);
     this.consulting = true;
+    this.consultStart = performance.now();
+    this.consultDur = duration;
     this.natalRing.userData.alphaGoal = 1;
     let i = 0;
     const next = () => {
@@ -474,6 +489,17 @@ export class Sky {
       // Start just inside the rings and pull back through them.
       this.camera.position.set(0, (1 - eA) * 0.35, this.baseDist * (0.14 + 0.86 * eA));
       this.camLook.set(0, 0, 0);
+    } else if (this.consulting && this.consultStart != null && !this.reduced) {
+      // Consulting: swoop into the rings, circle once around the inside, then pull back out.
+      const p = Math.min(1, (performance.now() - this.consultStart) / this.consultDur);
+      const ease = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+      const az = ease * Math.PI * 2;
+      const dip = Math.pow(Math.sin(Math.PI * p), 0.65);
+      const d = this.baseDist * (1 - 0.86 * dip);
+      const lift = Math.sin(Math.PI * 2 * p) * 0.55 * d + dip * 0.6;
+      const goal = new THREE.Vector3(Math.sin(az) * d, lift, Math.cos(az) * d);
+      this.camera.position.lerp(goal, 1 - Math.pow(0.0005, dt));
+      this.camLook.lerp(new THREE.Vector3(0, 0, 0), slow);
     } else {
       this.camera.position.lerp(this.camGoal.pos, slow);
       this.camLook.lerp(this.camGoal.look, slow);
