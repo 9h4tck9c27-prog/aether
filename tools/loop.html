@@ -1,0 +1,51 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>html, body { margin: 0; background: #000; overflow: hidden; } #sky { position: fixed; inset: 0; width: 100vw; height: 100vh; }</style>
+<script>
+// Deterministic clock so every frame of the video is identical run to run.
+window.__t = 0; performance.now = () => window.__t;
+</script>
+<script src="/site/vendor/astronomy.browser.min.js"></script>
+</head>
+<body>
+<canvas id="sky"></canvas>
+<script type="module">
+import { Sky } from "/site/js/sky3d.js";
+import { natalChart, todaySignals } from "/site/js/astro.js";
+const q = new URLSearchParams(location.search);
+const W = innerWidth, H = innerHeight;
+const sky = new Sky(document.getElementById("sky"));
+sky.renderer.setAnimationLoop(null);
+const now = new Date("2026-10-20T21:00:00Z");
+const natal = natalChart({ birthDate: "1992-03-14", birthTime: "07:45", city: "Syracuse", lat: 43.05, lon: -76.15, tz: "America/New_York" });
+const sig = todaySignals(natal, now);
+sky.setSky(sig.sky); sky.setNatal(natal.pos, natal.asc);
+const slotH = +(q.get("slotH") || 1), slotY = +(q.get("slotY") || 0);
+sky.setSlot({ left: 0, top: H * slotY, width: W, height: H * slotH }, true);
+const pairs = [
+  ...sig.personal.slice(0, 6).map(s => [["sky", s.t], ["natal", s.n === "Ascendant" && natal.asc == null ? "Sun" : s.n]]),
+  ...sig.collective.slice(0, 4).map(s => [["sky", s.t], ["sky", s.n]]),
+];
+const out = document.createElement("canvas"); out.width = W; out.height = H;
+const g = out.getContext("2d");
+function bg() {
+  const r = g.createRadialGradient(W * .5, H * (slotY + slotH / 2), 0, W * .5, H * .5, Math.max(W, H) * .75);
+  r.addColorStop(0, "#35225e"); r.addColorStop(.55, "#1C1230"); r.addColorStop(1, "#0f0820");
+  g.fillStyle = r; g.fillRect(0, 0, W, H);
+  const w = g.createRadialGradient(W / 2, H * 1.05, 0, W / 2, H * 1.05, Math.max(W, H) * .7);
+  w.addColorStop(0, "rgba(255,184,154,.32)"); w.addColorStop(1, "rgba(255,184,154,0)");
+  g.fillStyle = w; g.fillRect(0, 0, W, H);
+}
+const FPS = 30;
+let frame = 0;
+const events = { 0: () => sky.intro(3000), [Math.round(3.4 * FPS)]: () => sky.consult(pairs, 6200), [Math.round(9.8 * FPS)]: () => { sky.endConsult(); sky.focus({ wide: true, showLinks: pairs.slice(0, 5) }); } };
+window.step = () => {
+  if (events[frame]) events[frame]();
+  window.__t += 1000 / FPS; frame++;
+  sky.frame();
+  bg(); g.drawImage(sky.canvas, 0, 0, W, H);
+  return out.toDataURL("image/jpeg", 0.93);
+};
+document.title = "ready";
+</script>
+</body></html>
