@@ -19,3 +19,10 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
+
+# Send the old Netlify address to the real domain.
+[[redirects]]
+  from = "https://aetherize.netlify.app/*"
+  to = "https://myaether.info/:splat"
+  status = 301
+  force = true

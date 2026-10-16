@@ -9,7 +9,7 @@ import { Sky } from "./sky3d.js";
 const A = window.Astronomy;
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const TIP_URL = "https://buy.stripe.com/test_dRmdR9dtmchA4mJaLPfYY00"; // Stripe payment link for tips. Swap for the live link (no "test_") before launch.
+const TIP_URL = ""; // PayPal tip link goes here.
 const SITE = "https://myaether.info";
 const INSTAGRAM = "https://www.instagram.com/_aether.aether_";
 const IG_HANDLE = "@_aether.aether_";
@@ -888,7 +888,7 @@ function openMenu() {
 function openTip(e) {
   if (e) e.preventDefault();
   if (TIP_URL) return void open(TIP_URL, "_blank", "noopener");
-  toast("The tip page isn't ready yet.");
+  toast("Tips open very soon. Thank you for wanting to chip in!");
 }
 
 // ---------- Wiring ----------
