@@ -9,7 +9,7 @@ import { Sky } from "./sky3d.js";
 const A = window.Astronomy;
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const TIP_URL = ""; // Ko-fi page goes here, e.g. https://ko-fi.com/yourname
+const TIP_URL = "https://ko-fi.com/aetherapp";
 const SITE = "https://myaether.info";
 const INSTAGRAM = "https://www.instagram.com/_aether.aether_";
 const IG_HANDLE = "@_aether.aether_";
