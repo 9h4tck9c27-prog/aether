@@ -9,7 +9,7 @@ import { Sky } from "./sky3d.js";
 const A = window.Astronomy;
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const TIP_URL = ""; // PayPal tip link goes here.
+const TIP_URL = ""; // Ko-fi page goes here, e.g. https://ko-fi.com/yourname
 const SITE = "https://myaether.info";
 const INSTAGRAM = "https://www.instagram.com/_aether.aether_";
 const IG_HANDLE = "@_aether.aether_";
@@ -483,7 +483,7 @@ function renderCard(c, i, r) {
           <div class="row"><button class="ghost" data-act="save"${saved ? " disabled" : ""}>${saved ? "Saved" : "Save this reading"}</button><button class="ghost" data-act="done">Done</button></div>
           ${c.bucket === "heavy" ? `<button class="text-btn" data-act="breathe">Take a slow breath with the sky</button>` : ""}
         </div>`, d++)
-      + (c.bucket === "golden" ? rv(`<div class="card-tip"><button class="tip-btn" type="button"><span class="tip-heart" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20.5s-7.5-4.6-7.5-10.3A4.3 4.3 0 0 1 12 7.4a4.3 4.3 0 0 1 7.5 2.8c0 5.7-7.5 10.3-7.5 10.3z"/></svg></span><span class="tip-text"><b>Chip in to keep Æther free</b><small>No ads, no paywall. Tips keep the sky turning.</small></span><span class="tip-arrow" aria-hidden="true">›</span></button></div>`, d++) : "");
+      + (c.bucket === "golden" ? rv(`<div class="card-tip"><button class="tip-btn" type="button"><span class="tip-heart" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20.5s-7.5-4.6-7.5-10.3A4.3 4.3 0 0 1 12 7.4a4.3 4.3 0 0 1 7.5 2.8c0 5.7-7.5 10.3-7.5 10.3z"/></svg></span><span class="tip-text"><b>Chip in to keep æther free</b><small>No ads, no paywall. Tips keep the sky turning.</small></span><span class="tip-arrow" aria-hidden="true">›</span></button></div>`, d++) : "");
   }
   return `<article class="card card-${c.type}" aria-roledescription="card" aria-label="Card ${i + 1} of ${reading.deck.length}"><div class="card-inner"><div class="card-content">${inner}</div></div></article>`;
 }
@@ -851,7 +851,7 @@ function openMenu() {
         <div class="chips" id="mPhase" style="margin-top:10px">${phases.map(p => `<button type="button" class="chip" aria-pressed="${p === cur}" data-v="${p}">${p}</button>`).join("")}</div>
       </div>
       <a class="menu-item" href="${INSTAGRAM}" target="_blank" rel="noopener">${ic.share.replace(/<path[\s\S]*$/, '<rect x="4" y="4" width="16" height="16" rx="5"/><circle cx="12" cy="12" r="3.6"/><circle cx="17" cy="7" r=".6"/></svg>')}<span>Follow on Instagram<small>${IG_HANDLE}</small></span></a>
-      <button class="menu-item" id="mTip">${ic.heart}<span>Chip in<small>Æther is free, with no ads and no paywall</small></span></button>
+      <button class="menu-item" id="mTip">${ic.heart}<span>Chip in<small>æther is free, with no ads and no paywall</small></span></button>
       <button class="menu-item" id="mEdit">${ic.edit}<span>Edit birth details</span></button>
       <button class="menu-item" id="mErase">${ic.trash}<span>Erase everything on this phone</span></button>
       <a class="menu-item" href="mailto:aetherapp@icloud.com?subject=%C3%86ther%20feedback">${ic.share.replace(/<path[\s\S]*$/, '<path d="M4 6h16v12H4z"/><path d="M4 7l8 6 8-6"/></svg>')}<span>Send feedback<small>Ideas, bugs, kind words: we read everything</small></span></a>
