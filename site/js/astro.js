@@ -5,7 +5,7 @@ import {
 
 const A = window.Astronomy;
 const norm = d => ((d % 360) + 360) % 360;
-const sep = (a, b) => { const d = Math.abs(norm(a) - norm(b)); return d > 180 ? 360 - d : d; };
+export const sep = (a, b) => { const d = Math.abs(norm(a) - norm(b)); return d > 180 ? 360 - d : d; };
 const pick = (arr, seed) => arr[Math.abs(seed) % arr.length];
 
 // ---------- Time zones ----------
@@ -34,7 +34,7 @@ export function dayKey(date = new Date()) {
 }
 
 // ---------- Positions ----------
-function lonOf(body, date) {
+export function lonOf(body, date) {
   if (body === "Sun") return A.SunPosition(date).elon;
   if (body === "Moon") return A.EclipticGeoMoon(date).lon;
   return A.Ecliptic(A.GeoVector(body, date, true)).elon;
@@ -194,7 +194,7 @@ const name = p => (p === "Ascendant" ? "your rising sign" : p === "Sun" || p ===
 const natalName = p => (p === "Ascendant" ? "your rising sign" : `your ${p}`);
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 
-function signalSentence(s) {
+export function signalSentence(s) {
   const T = cap(name(s.t));
   if (s.scope === "collective") {
     return `${T} ${s.asp.verb} ${name(s.n)} in the sky for everyone, mixing ${PLANET_INFO[s.t].domain} with ${PLANET_INFO[s.n].domain}.`;
@@ -240,7 +240,7 @@ function echoFor(top, seed) {
 // The full check-in reading.
 export function writeReading({ feel, chips, text, natal, profile, kp, now = new Date() }) {
   const sig = todaySignals(natal, now);
-  const bucket = feel < 0.38 ? "heavy" : feel > 0.62 ? "golden" : "mixed";
+  const bucket = feel < 0.42 ? "heavy" : feel > 0.62 ? "golden" : "mixed";
   const seed = Math.floor(now.getTime() / 3.6e6) + Math.round(feel * 10) + (text || "").length;
   const cond = conditionOf(sig.personal.length ? sig.personal : sig.collective);
 
@@ -285,5 +285,5 @@ export function writeReading({ feel, chips, text, natal, profile, kp, now = new 
       ? "Days like this are worth keeping. Bottle it, and it will glow in your journal."
       : `Notice what shifts when the Moon moves on, in about ${sig.moonLeft} hours.`;
 
-  return { bucket, cond, headline, quote: (text || "").trim(), why, themeLine, moonLine, whoElse, crowd, echo, closing, chips, sig };
+  return { bucket, cond, headline, quote: (text || "").trim(), why, themeLine, moonLine, whoElse, crowd, echo, closing, chips, sig, ranked, themes, now };
 }

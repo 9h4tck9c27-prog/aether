@@ -1,6 +1,6 @@
 // Æther service worker: works offline after the first visit, always prefers fresh files when online.
-const CACHE = "aether-v2";
-const SHELL = ["/", "/index.html", "/css/styles.css", "/js/app.js", "/js/astro.js", "/js/data.js", "/js/sky3d.js",
+const CACHE = "aether-v3";
+const SHELL = ["/", "/index.html", "/css/styles.css", "/js/app.js", "/js/astro.js", "/js/data.js", "/js/sky3d.js", "/js/reading.js",
   "/vendor/astronomy.browser.min.js", "/vendor/three.module.min.js", "/manifest.webmanifest", "/icons/icon-192.png", "/fonts/fraunces-latin-full-normal.woff2", "/fonts/fraunces-latin-full-italic.woff2", "/fonts/figtree-latin-wght-normal.woff2"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => {

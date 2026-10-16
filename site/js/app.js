@@ -1,4 +1,5 @@
-import { CITIES } from "./data.js";
+import { CITIES, MOOD_WORDS, FEELING_CHIPS } from "./data.js";
+import { buildDeck, consultSteps } from "./reading.js";
 import {
   natalChart, todaySignals, homeForecast, positions, writeReading, conditionOf, CONDITIONS, signOf, nakshatraOf, dayKey, moonPhase,
 } from "./astro.js";
@@ -179,7 +180,7 @@ function startOnboarding() {
     draft.pronouns = pron;
     profile = draft; store.set("profile", profile);
     natal = natalChart(profile);
-    sky.setNatal(natal.pos); sky.bloom();
+    sky.setNatal(natal.pos, natal.asc); sky.bloom();
     const pos = natal.pos;
     const who = profile.name ? `${profile.name}, you` : "You";
     $("#revealText").textContent = `${who} arrived with the Sun in ${signOf(pos.Sun.lon)}, the Moon in ${signOf(pos.Moon.lon)}${natal.hasTime ? `, and ${signOf(natal.asc)} rising` : ""}.`;
@@ -194,42 +195,59 @@ function startOnboarding() {
 }
 
 // ---------- Sheet ----------
-function openSheet(html, onClose) {
+function openSheet(html, onClose, footHtml = "") {
   $("#sheetBody").innerHTML = html;
-  $("#sheet").hidden = false; $("#scrim").hidden = false;
+  const foot = $("#sheetFoot"); foot.innerHTML = footHtml; foot.hidden = !footHtml;
+  const sheet = $("#sheet");
+  sheet.style.transform = "";
+  sheet.hidden = false; $("#scrim").hidden = false;
   $("#sheetBody").scrollTop = 0;
   openSheet._onClose = onClose;
-  setTimeout(() => $("#sheetClose").focus({ preventScroll: true }), 50);
 }
 function closeSheet() {
+  if ($("#sheet").hidden) return;
   $("#sheet").hidden = true; $("#scrim").hidden = true;
   document.querySelector(".mood-tint").style.opacity = 0;
   const cb = openSheet._onClose; openSheet._onClose = null; if (cb) cb();
 }
-$("#sheetClose").onclick = closeSheet;
-$("#scrim").onclick = closeSheet;
-addEventListener("keydown", e => { if (e.key === "Escape" && !$("#sheet").hidden) closeSheet(); });
+$("#sheetClose").addEventListener("click", e => { e.stopPropagation(); closeSheet(); });
+$("#scrim").addEventListener("click", closeSheet);
+addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  if (!$("#sheet").hidden) closeSheet(); else if (!$("#stage").hidden) endReading();
+});
+// Swipe the sheet down by its header to close it.
+(() => {
+  const head = $("#sheetHead"), sheet = $("#sheet"); let y0 = null;
+  head.addEventListener("touchstart", e => { if (!e.target.closest("button")) y0 = e.touches[0].clientY; }, { passive: true });
+  head.addEventListener("touchmove", e => { if (y0 != null) sheet.style.transform = `translateY(${Math.max(0, e.touches[0].clientY - y0)}px)`; }, { passive: true });
+  head.addEventListener("touchend", e => {
+    if (y0 == null) return;
+    const dy = e.changedTouches[0].clientY - y0; y0 = null; sheet.style.transform = "";
+    if (dy > 70) closeSheet();
+  });
+})();
 
 // ---------- Check-in ----------
-const FEEL_WORDS = ["Heavy", "Low", "Mixed", "Bright", "Golden"];
+const moodWord = v => MOOD_WORDS[Math.min(MOOD_WORDS.length - 1, Math.floor(v * MOOD_WORDS.length))];
 function openCheckin() {
   openSheet(`
     <h2 id="sheetTitle">How's today?</h2>
-    <p class="feel-word" id="feelWord">Mixed</p>
-    <input class="feel-range" id="feel" type="range" min="0" max="100" value="50" aria-label="How today feels, from heavy to golden">
+    <p class="feel-word" id="feelWord"></p>
+    <input class="feel-range" id="feel" type="range" min="0" max="100" value="55" aria-label="How today feels, from heavy to golden">
     <div class="ends"><span>Heavy</span><span>Golden</span></div>
-    <div class="chips" id="chips">
-      ${["strange", "restless", "tender", "tired", "inspired"].map(c => `<button type="button" class="chip" aria-pressed="false" data-v="${c}">${c}</button>`).join("")}
+    <p class="chips-label">Anything else in the air? Pick any that fit.</p>
+    <div class="chips small" id="chips">
+      ${FEELING_CHIPS.map(c => `<button type="button" class="chip" aria-pressed="false" data-v="${c}">${c}</button>`).join("")}
     </div>
     <textarea id="words" placeholder="Tell the sky what happened, in a sentence or two (optional)" maxlength="400"></textarea>
     <p class="privacy-note">Your words stay on this phone. They are never sent anywhere.</p>
-    <button class="primary" id="readBtn">Read my sky</button>
-  `);
+  `, null, `<button class="primary" id="readBtn">Read my sky</button>`);
   const tint = document.querySelector(".mood-tint");
   const feel = $("#feel");
   const update = () => {
     const v = feel.value / 100;
-    $("#feelWord").textContent = FEEL_WORDS[Math.min(4, Math.floor(v * 5))];
+    $("#feelWord").textContent = moodWord(v);
     tint.style.setProperty("--tint", v < 0.5 ? "rgba(110, 130, 190, .55)" : "rgba(255, 184, 154, .55)");
     tint.style.opacity = Math.abs(v - 0.5) * 1.6;
   };
@@ -237,57 +255,195 @@ function openCheckin() {
   $("#chips").onclick = e => { const b = e.target.closest(".chip"); if (b) b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") !== "true"); };
   $("#readBtn").onclick = () => {
     const chips = [...document.querySelectorAll("#chips .chip[aria-pressed='true']")].map(b => b.dataset.v);
-    const r = writeReading({ feel: feel.value / 100, chips, text: $("#words").value, natal, profile, kp });
-    const entry = { id: Date.now(), day: dayKey(), feel: feel.value / 100, chips, text: $("#words").value.trim(), headline: r.headline, cond: r.cond, bottled: false };
+    const text = $("#words").value;
+    const r = writeReading({ feel: feel.value / 100, chips, text, natal, profile, kp });
+    const entry = { id: Date.now(), day: dayKey(), feel: feel.value / 100, chips, text: text.trim(), headline: r.headline, cond: r.cond, bottled: false };
     entries.push(entry); store.set("entries", entries);
-    sky.bloom();
-    showReading(r, entry);
+    closeSheet();
+    startReading(r, entry, { consult: true });
   };
 }
 
-function showReading(r, entry) {
-  const ritualOrBottle = r.bucket === "heavy"
-    ? `<button class="primary" id="ritualBtn">Breathe with the sky</button>`
-    : r.bucket === "golden"
-      ? `<button class="primary" id="bottleBtn">Bottle this</button>`
-      : `<button class="primary" id="doneBtn">Done</button>`;
-  const tip = r.bucket === "golden" ? `<p class="tip-line">Æther is free, with no ads and no paywall. <a href="#" class="tip-link">Chip in to keep it that way.</a></p>` : "";
-  openSheet(`
-    <article class="reading">
-      <h2 id="sheetTitle">${esc(r.headline)}</h2>
-      ${r.quote ? `<p class="quote">${esc(r.quote)}</p>` : ""}
-      ${r.themeLine ? `<p class="theme-line">${esc(r.themeLine)}</p>` : ""}
-      <h3>Why it might feel this way</h3>
-      <div class="why">${r.why.map(w => `<p>${esc(w)}</p>`).join("")}<p>${esc(r.moonLine)}</p></div>
-      <h3>Who else feels it</h3>
-      <div class="crowd"><strong>${r.crowd.count.toLocaleString()}</strong><span>people near you logged a ${r.crowd.label} day too<em>Sample number in this prototype. The real count arrives with the live version.</em></span></div>
-      ${r.whoElse.map(w => `<p>${esc(w)}</p>`).join("")}
-      <h3>An ancient echo</h3>
-      <p class="echo">${esc(r.echo.text)}<cite>${esc(r.echo.source)}</cite></p>
-      <h3>For the rest of today</h3>
-      <p class="closing">${esc(r.closing)}</p>
-      <div class="actions">
-        ${ritualOrBottle}
-        <div class="row">
-          <button class="ghost" id="shareReading">Share this sky</button>
-          <button class="ghost" id="closeReading">Close</button>
-        </div>
-      </div>
-      <div id="bottledNote"></div>
-      ${tip}
-    </article>
-  `, () => maybeAskInstall());
-  $("#closeReading").onclick = closeSheet;
-  $("#shareReading").onclick = () => shareCard(r);
-  const done = $("#doneBtn"); if (done) done.onclick = closeSheet;
-  const rit = $("#ritualBtn"); if (rit) rit.onclick = startRitual;
-  const bot = $("#bottleBtn");
-  if (bot) bot.onclick = () => {
-    entry.bottled = true; store.set("entries", entries);
-    sky.bloom(); bot.disabled = true; bot.textContent = "Bottled";
-    $("#bottledNote").innerHTML = `<p class="bottled">A new star in your journal.</p>`;
+// ---------- The reading: consult the sky, then swipe through cards ----------
+let reading = null;
+const CONSULT_STEP_MS = 950;
+
+function startReading(r, entry, { consult = true } = {}) {
+  document.body.classList.add("reading-mode");
+  $("#stage").hidden = false;
+  $("#cards").hidden = true; $("#cards").innerHTML = ""; $("#bars").innerHTML = "";
+  sky.setSky(r.sig.sky);
+  requestAnimationFrame(() => sky.resize());
+  reading = { r, entry, deck: buildDeck(r, natal, kp), index: -1 };
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!consult || reduced) { $("#consult").hidden = true; showDeck(); return; }
+
+  $("#consult").hidden = false;
+  const steps = consultSteps(r, natal, profile, kp);
+  const pairs = [
+    ...r.sig.personal.slice(0, 6).map(s => [["sky", s.t], ["natal", s.n === "Ascendant" && natal.asc == null ? "Sun" : s.n]]),
+    ...r.sig.collective.slice(0, 4).map(s => [["sky", s.t], ["sky", s.n]]),
+  ];
+  sky.consult(pairs.length ? pairs : [[["sky", "Sun"], ["sky", "Moon"]]]);
+  let i = 0;
+  const stepEl = $("#consultStep"), fill = $("#consultFill");
+  fill.style.transitionDuration = "0s"; fill.style.width = "0%"; void fill.offsetWidth; fill.style.transitionDuration = "";
+  const tick = () => {
+    if (!reading || reading.consultDone) return;
+    if (i >= steps.length) return finishConsult();
+    stepEl.classList.remove("in"); void stepEl.offsetWidth;
+    stepEl.textContent = steps[i]; stepEl.classList.add("in");
+    fill.style.width = `${((i + 1) / steps.length) * 100}%`;
+    i++;
+    reading.timer = setTimeout(tick, CONSULT_STEP_MS);
   };
+  tick();
+  $("#consult").onclick = () => { if (i >= 2) finishConsult(); };
 }
+
+function finishConsult() {
+  if (!reading || reading.consultDone) return;
+  reading.consultDone = true;
+  clearTimeout(reading.timer);
+  sky.endConsult();
+  $("#consult").hidden = true;
+  showDeck();
+}
+
+function rv(html, d) { return html ? html.replace(/^<(\w+)/, `<$1 style="--d:${d}"`).replace(/class="/, 'class="rv ') : ""; }
+
+function moonSvg(phase) {
+  const r = 34, cx = 40, cy = 40, k = Math.cos(phase.angle * Math.PI / 180), rx = Math.abs(k) * r;
+  const waxing = phase.angle < 180;
+  const lit = `M${cx} ${cy - r} A${r} ${r} 0 0 1 ${cx} ${cy + r} A${rx} ${r} 0 0 ${k > 0 ? 0 : 1} ${cx} ${cy - r}Z`;
+  return `<svg class="moon-svg" viewBox="0 0 80 80" aria-hidden="true"><circle cx="${cx}" cy="${cy}" r="${r}" class="moon-dark"/><path d="${lit}" class="moon-lit" ${waxing ? "" : `transform="translate(80 0) scale(-1 1)"`}/></svg>`;
+}
+
+function gaugeSvg(v) {
+  const r = 30, len = Math.PI * r;
+  return `<svg class="gauge" viewBox="0 0 80 46" aria-hidden="true"><path d="M10 40 A30 30 0 0 1 70 40" class="gauge-track"/><path d="M10 40 A30 30 0 0 1 70 40" class="gauge-fill" style="stroke-dasharray:${len};--off:${len * (1 - Math.min(1, v))};stroke-dashoffset:${len}"/></svg>`;
+}
+
+function renderCard(c, i, r) {
+  let d = 0;
+  const kicker = rv(`<p class="kicker">${esc(c.kicker)}</p>`, d++);
+  let inner = "";
+  if (c.type === "open") {
+    inner = kicker
+      + rv(`<h2 class="card-title big">${esc(c.title)}</h2>`, d++)
+      + (c.quote ? rv(`<p class="quote">${esc(c.quote)}</p>`, d++) : "")
+      + (c.chipLine ? rv(`<p class="lead">${esc(c.chipLine)}</p>`, d++) : "")
+      + rv(`<p class="condition"><span class="cond-icon">${ICONS[c.cond]}</span>${esc(CONDITIONS[c.cond].label)}</p>`, d++)
+      + rv(`<p class="swipe-hint">Swipe for your sky <span aria-hidden="true">›</span></p>`, d++);
+  } else if (c.type === "transit") {
+    inner = kicker
+      + rv(`<div class="glyphs" aria-hidden="true"><span>${c.glyphs[0]}</span><span class="asp">${c.glyphs[1]}</span><span>${c.glyphs[2]}</span></div>`, d++)
+      + rv(`<h2 class="card-title">${esc(c.title)}</h2>`, d++)
+      + rv(`<p class="lead">${esc(c.lead)}</p>`, d++)
+      + c.body.map(b => rv(`<p class="body">${esc(b)}</p>`, d++)).join("")
+      + rv(`<p class="timing">${esc(c.timing)}</p>`, d++);
+  } else if (c.type === "moon") {
+    inner = kicker
+      + rv(`<div class="moon-row">${moonSvg(c.phase)}<span>${esc(c.phase.name)}<br><small>${Math.round(c.phase.illum * 100)}% lit</small></span></div>`, d++)
+      + rv(`<h2 class="card-title">${esc(c.title)}</h2>`, d++)
+      + rv(`<p class="lead">${esc(c.lead)}</p>`, d++)
+      + c.body.map(b => rv(`<p class="body">${esc(b)}</p>`, d++)).join("");
+  } else if (c.type === "together") {
+    inner = kicker
+      + rv(`<h2 class="card-title">${esc(c.title)}</h2>`, d++)
+      + rv(`<div class="crowd-big"><strong data-count="${c.crowd.count}">0</strong><span>people near you logged a ${esc(c.crowd.label)} day too</span><em>Sample number in this prototype; the live count comes later.</em></div>`, d++)
+      + (c.kp != null ? rv(`<div class="kp-row">${gaugeSvg(c.kp / 9)}<span><b>Kp ${c.kp.toFixed(1)}</b><br>${c.kp >= 5 ? "A geomagnetic storm is washing over Earth." : c.kp >= 4 ? "Earth's magnetic field is unsettled." : "Space weather is calm right now."}</span></div>`, d++) : "")
+      + c.body.map(b => rv(`<p class="body">${esc(b)}</p>`, d++)).join("");
+  } else if (c.type === "echo") {
+    inner = kicker
+      + rv(`<blockquote class="echo-big">${esc(c.title)}</blockquote>`, d++)
+      + rv(`<p class="cite">${esc(c.source)}</p>`, d++);
+  } else if (c.type === "close") {
+    const main = c.bucket === "heavy" ? `<button class="primary" data-act="breathe">Breathe with the sky</button>`
+      : c.bucket === "golden" ? `<button class="primary" data-act="bottle">Bottle this</button>`
+        : `<button class="primary" data-act="done">Done</button>`;
+    inner = kicker
+      + rv(`<h2 class="card-title">${esc(c.title)}</h2>`, d++)
+      + c.body.map(b => rv(`<p class="lead">${esc(b)}</p>`, d++)).join("")
+      + rv(`<div class="card-actions">${main}<div class="row"><button class="ghost" data-act="share">Share this sky</button><button class="ghost" data-act="${c.bucket === "mixed" ? "journal" : "done"}">${c.bucket === "mixed" ? "Journal" : "Done"}</button></div><p class="bottled" data-bottled hidden>A new star in your journal.</p></div>`, d++)
+      + (c.bucket === "golden" ? rv(`<p class="tip-line">Æther is free, with no ads and no paywall. <a href="#" class="tip-link">Chip in to keep it that way.</a></p>`, d++) : "");
+  }
+  return `<article class="card card-${c.type}" aria-roledescription="card" aria-label="Card ${i + 1} of ${reading.deck.length}"><div class="card-inner">${inner}</div></article>`;
+}
+
+function showDeck() {
+  const { deck, r } = reading;
+  const cards = $("#cards");
+  cards.innerHTML = deck.map((c, i) => renderCard(c, i, r)).join("");
+  $("#bars").innerHTML = deck.map(() => "<span></span>").join("");
+  cards.hidden = false;
+  cards.scrollLeft = 0;
+  reading.index = -1;
+  setActive(0);
+  cards.onscroll = () => { clearTimeout(cards._t); cards._t = setTimeout(() => setActive(Math.round(cards.scrollLeft / cards.clientWidth)), 50); };
+  cards.onclick = e => {
+    if (e.target.closest("button, a, input, label, textarea")) return;
+    const x = e.clientX / innerWidth;
+    if (x > 0.62) goCard(1); else if (x < 0.22) goCard(-1);
+  };
+  cards.querySelectorAll("[data-act]").forEach(b => (b.onclick = () => cardAction(b)));
+}
+
+function goCard(dir) {
+  const cards = $("#cards");
+  const n = Math.max(0, Math.min(reading.deck.length - 1, reading.index + dir));
+  cards.scrollTo({ left: n * cards.clientWidth, behavior: "smooth" });
+}
+
+function setActive(i) {
+  if (!reading || i === reading.index || i < 0 || i >= reading.deck.length) return;
+  reading.index = i;
+  const els = document.querySelectorAll("#cards .card");
+  els.forEach((el, j) => { el.classList.toggle("active", j === i); if (j === i) el.querySelector(".card-inner").scrollTop = 0; });
+  document.querySelectorAll("#bars span").forEach((b, j) => (b.className = j < i ? "done" : j === i ? "on" : ""));
+  sky.focus(reading.deck[i].focus);
+  const num = els[i].querySelector("[data-count]");
+  if (num && !num.dataset.done) countUp(num);
+}
+
+function countUp(el) {
+  el.dataset.done = "1";
+  const target = +el.dataset.count, t0 = performance.now(), dur = 1400;
+  const step = now => {
+    const p = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.round(target * e).toLocaleString();
+    if (p < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+function cardAction(b) {
+  const act = b.dataset.act;
+  if (act === "share") return shareCard(reading.r);
+  if (act === "breathe") return startRitual();
+  if (act === "journal") { endReading(); return openJournal(); }
+  if (act === "done") return endReading();
+  if (act === "bottle") {
+    reading.entry.bottled = true; store.set("entries", entries);
+    sky.bloom(); b.disabled = true; b.textContent = "Bottled";
+    b.closest(".card-actions").querySelector("[data-bottled]").hidden = false;
+  }
+}
+
+function endReading() {
+  if (!reading) return;
+  clearTimeout(reading.timer);
+  if (!reading.consultDone) sky.endConsult();
+  reading = null;
+  $("#stage").hidden = true;
+  document.body.classList.remove("reading-mode");
+  sky.focus(null);
+  sky.setSky(positions(new Date()));
+  requestAnimationFrame(() => sky.resize());
+  renderHome();
+  maybeAskInstall();
+}
+$("#stageClose").onclick = endReading;
 
 // ---------- Breathing ritual: in 4 s, out 6 s, three rounds ----------
 function startRitual() {
@@ -308,7 +464,7 @@ function startRitual() {
     }, 4000);
   };
   step();
-  $("#ritualDone").onclick = () => { stopped = true; el.hidden = true; maybeAskInstall(); };
+  $("#ritualDone").onclick = () => { stopped = true; el.hidden = true; if (!reading) maybeAskInstall(); };
 }
 
 // ---------- Share card ----------
@@ -317,7 +473,7 @@ function wrap(ctx, text, maxW) {
   for (const w of words) { const t = line ? line + " " + w : w; if (ctx.measureText(t).width > maxW && line) { lines.push(line); line = w; } else line = t; }
   if (line) lines.push(line); return lines;
 }
-async function renderCard(r) {
+async function renderShareImage(r) {
   try { await document.fonts.load('400 64px "Fraunces"'); await document.fonts.load('italic 400 40px "Fraunces"'); await document.fonts.load('500 30px "Figtree"'); } catch { }
   const W = 1080, H = 1350, c = document.createElement("canvas"); c.width = W; c.height = H;
   const g = c.getContext("2d");
@@ -359,7 +515,7 @@ async function renderCard(r) {
   return new Promise(res => c.toBlob(res, "image/png"));
 }
 async function shareCard(r) {
-  const blob = await renderCard(r);
+  const blob = await renderShareImage(r);
   const file = new File([blob], "aether-sky.png", { type: "image/png" });
   const text = `My sky today on Æther. ${location.origin}`;
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -425,10 +581,16 @@ function openJournal() {
     const list = byDay[b.dataset.day] || [];
     $("#dayDetail").innerHTML = list.length ? list.slice().reverse().map(en => `
       <div class="entry">
-        <div class="when">${new Date(en.id).toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}. ${FEEL_WORDS[Math.min(4, Math.floor(en.feel * 5))]}${en.bottled ? ", bottled" : ""}</div>
+        <div class="when">${new Date(en.id).toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}. ${moodWord(en.feel)}${en.bottled ? ", bottled" : ""}</div>
         <div class="h">${esc(en.headline)}</div>
         ${en.text ? `<p class="quote" style="font-family:var(--serif);font-style:italic">${esc(en.text)}</p>` : ""}
+        <button class="ghost small-btn" data-open="${en.id}">Open this reading</button>
       </div>`).join("") : `<p class="empty">No check-in that day.</p>`;
+    $("#dayDetail").querySelectorAll("[data-open]").forEach(btn => btn.onclick = () => {
+      const en = entries.find(x => x.id === +btn.dataset.open); if (!en) return;
+      const r = writeReading({ feel: en.feel, chips: en.chips || [], text: en.text, natal, profile, kp: null, now: new Date(en.id) });
+      closeSheet(); startReading(r, en, { consult: false });
+    });
   };
   $("#exportBtn").onclick = () => {
     const blob = new Blob([JSON.stringify({ profile, entries }, null, 2)], { type: "application/json" });
@@ -542,7 +704,7 @@ $("#menuBtn").onclick = openMenu;
 document.addEventListener("click", e => { if (e.target.closest(".tip-link")) openTip(e); });
 document.addEventListener("visibilitychange", () => { if (!document.hidden) { applyPhase(); renderHome(); } });
 
-if (profile) { natal = natalChart(profile); sky.setNatal(natal.pos); renderHome(); setTimeout(showTiltHint, 800); }
+if (profile) { natal = natalChart(profile); sky.setNatal(natal.pos, natal.asc); renderHome(); setTimeout(showTiltHint, 800); }
 else startOnboarding();
 loadKp();
 

@@ -284,3 +284,102 @@ export const THEME_LINES = {
     golden: "Home feels like a harbour today.",
   },
 };
+
+// ---------- Copy for the card reading ----------
+
+// Twelve steps from heavy to golden. Index = Math.floor(feel * 12).
+export const MOOD_WORDS = ["Heavy", "Drained", "Low", "Tender", "Foggy", "Unsettled", "Mixed", "Steady", "Hopeful", "Bright", "Glowing", "Golden"];
+
+export const FEELING_CHIPS = [
+  "anxious", "tired", "lonely", "restless", "numb", "angry", "overwhelmed", "grieving",
+  "tender", "strange", "nostalgic", "calm", "hopeful", "grateful", "loved", "inspired", "playful", "proud",
+];
+
+export const CHIP_LINES = {
+  anxious: "Anxiety is the body bracing for weather that hasn't arrived yet. Most of it never does.",
+  tired: "Tiredness is information, not failure. The sky turns whether or not you push.",
+  lonely: "Loneliness is easier to carry knowing others are under this same sky tonight, feeling it too.",
+  restless: "Restlessness is energy without a door yet. Give it a small one: a walk, a song, a list.",
+  numb: "Numbness is often the mind turning the volume down to protect you. It lifts in its own time.",
+  angry: "Anger points at something that matters to you. Let it inform you before you let it act.",
+  overwhelmed: "When everything is loud, choose one small thing. The rest can wait for the Moon to move.",
+  grieving: "Grief is love with nowhere to go. The old astrologers never rushed a Saturn season, and neither should you.",
+  tender: "Tenderness is a kind of openness. Protect it, but don't close it.",
+  strange: "Strange days are often hinge days: something is turning that you can't name yet.",
+  nostalgic: "Nostalgia is the past visiting. Let it sit with you, then send it home.",
+  calm: "Calm is rarer than it should be. Notice it; it's worth remembering.",
+  hopeful: "Hope is a forecast you're allowed to make for yourself.",
+  grateful: "Gratitude widens the frame, which is exactly what the sky does too.",
+  loved: "Being loved is a kind of weather. Let it warm you all the way through.",
+  inspired: "Inspiration is a gust; catch it on paper before it moves on.",
+  playful: "Play is how the spirit stretches. Let today be a little ridiculous.",
+  proud: "Pride in your own work is earned. Let it land.",
+};
+
+export const TRANSIT_TEXT = {
+  Sun: "The Sun lights up whatever it touches, bringing attention, energy and a little spotlight.",
+  Moon: "The Moon moves through your whole chart every month, stirring moods and the body as she passes.",
+  Mercury: "Mercury carries messages, plans and second thoughts; when it touches your chart, the mind gets busy.",
+  Venus: "Venus is the planet of pleasure, beauty and connection, the oldest symbol of good fortune in love.",
+  Mars: "Mars brings heat: drive, courage and a short fuse. It gets things moving, sometimes too fast.",
+  Jupiter: "Jupiter is the great benefic, the planet of growth, generosity and luck. It makes things bigger.",
+  Saturn: "Saturn is the planet of weight and time. It tests what's real and rewards what lasts.",
+  Uranus: "Uranus is the planet of sudden change and electric surprises. Where it touches, the familiar gets shaken up.",
+  Neptune: "Neptune dissolves edges, bringing dreams, intuition and fog. Things are not quite what they seem.",
+  Pluto: "Pluto works slowly and deeply, bringing endings, power and transformation from underneath.",
+};
+
+export const NATAL_TEXT = {
+  Sun: "Your natal Sun is your core self: the light you were born to shine.",
+  Moon: "Your natal Moon is your emotional body: what you need to feel safe, and how moods move through you.",
+  Mercury: "Your natal Mercury is how you think, speak and make sense of the day.",
+  Venus: "Your natal Venus is how you love, what you find beautiful, and how you receive pleasure.",
+  Mars: "Your natal Mars is your drive and your edge: how you go after things and how you fight.",
+  Ascendant: "Your rising sign is the doorway of your chart: how you meet the world and how it first meets you.",
+};
+
+export const ASPECT_TEXT = {
+  conjunction: "A conjunction fuses two forces into one strong note. Neither can be ignored today.",
+  sextile: "A sextile is an open door: real help, if you walk through it.",
+  square: "A square is friction at right angles, the kind that builds pressure until something moves.",
+  trine: "A trine is the easiest angle in the sky: energy flowing downhill, without effort.",
+  opposition: "An opposition is a tug of war across the sky, two forces facing each other and asking you to find the middle.",
+};
+
+// How a signal relates to the way the person feels, by feeling bucket and harmony (-1 tense, 0 blend, 1 easy).
+export const FEEL_LINK = {
+  heavy: { "-1": "That friction lines up with the weight you're feeling. It is real, and it is passing.", "0": "This blend is intense, which may be part of why today feels so heavy.", "1": "Even on a heavy day, this is support you can lean on. Look for the small kindness in it." },
+  mixed: { "-1": "This tension may explain the static in your day.", "0": "This strong blend can make a day feel full and hard to read.", "1": "This easy current is the steady part of your day." },
+  golden: { "-1": "You're riding this tension well; today it reads as energy rather than strain.", "0": "This blend is turning up the volume on a good day.", "1": "This is a good part of why today feels bright. Enjoy it." },
+};
+
+// Ruling deity and symbol of each lunar mansion, in the same order as NAKSHATRAS.
+export const NAKSHATRA_LORE = [
+  ["the Ashvins, the twin healers", "a horse's head"],
+  ["Yama, keeper of thresholds", "a womb"],
+  ["Agni, the sacred fire", "a blade of flame"],
+  ["Prajapati, the creator", "an ox cart"],
+  ["Soma, the Moon's own nectar", "a deer's head"],
+  ["Rudra, the storm", "a teardrop"],
+  ["Aditi, mother of the gods", "a quiver of arrows"],
+  ["Brihaspati, teacher of the gods", "a flower"],
+  ["the Nagas, the serpent beings", "a coiled serpent"],
+  ["the Pitris, the ancestors", "a royal throne"],
+  ["Bhaga, giver of delight", "the front legs of a bed"],
+  ["Aryaman, god of friendship", "the back legs of a bed"],
+  ["Savitar, the bright sun", "an open hand"],
+  ["Vishvakarma, the divine maker", "a bright jewel"],
+  ["Vayu, the wind", "a young shoot swaying in the breeze"],
+  ["Indra and Agni together", "a triumphal arch"],
+  ["Mitra, god of friendship and promises", "a lotus"],
+  ["Indra, king of the gods", "a round talisman"],
+  ["Nirriti, who undoes things to their roots", "a bundle of roots"],
+  ["Apas, the waters", "a winnowing fan"],
+  ["the Vishvadevas, the universal gods", "an elephant's tusk"],
+  ["Vishnu, the preserver", "an ear"],
+  ["the eight Vasus, gods of abundance", "a drum"],
+  ["Varuna, lord of the cosmic waters", "an empty circle"],
+  ["Aja Ekapada, the one-footed goat", "a sword"],
+  ["Ahir Budhnya, serpent of the deep", "twins"],
+  ["Pushan, protector of travellers", "a fish"],
+];
