@@ -902,6 +902,13 @@ else startOnboarding();
 loadKp();
 loadWeather();
 countOnce("open");
+// Opened from the old address (or an older home-screen icon): point people to the new home.
+if (/netlify\.app$/.test(location.hostname)) setTimeout(() => {
+  const t = $("#toast");
+  toast("æther has a new home at myaether.info. Tap here to go there, then add it to your home screen again.", 12000);
+  t.style.pointerEvents = "auto"; t.style.cursor = "pointer";
+  t.onclick = () => { location.href = SITE + "/"; };
+}, 4000);
 
 // ---------- Opening animation: every launch ----------
 function playIntro() {
