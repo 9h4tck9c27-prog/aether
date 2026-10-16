@@ -21,6 +21,7 @@ let profile = store.get("profile", null);
 let entries = store.get("entries", []);
 let prefs = store.get("prefs", { phase: "auto", useHere: false, here: null, installAskedAt: 0 });
 let natal = null, kp = null, phaseOverride = null;
+if (prefs.phase && prefs.phase !== "auto") { prefs.phase = "auto"; store.set("prefs", prefs); }
 
 function toast(msg, ms = 3200) {
   const t = $("#toast"); t.textContent = msg; t.hidden = false;
@@ -44,13 +45,18 @@ function sunAltitude(date, lat, lon) {
   const eq = A.Equator("Sun", date, obs, true, true);
   return A.Horizon(date, obs, eq.ra, eq.dec, "normal").altitude;
 }
+// Where the sky colours follow: your exact spot if you allowed it, otherwise your phone's own time zone.
 function placeForColour() {
   if (prefs.useHere && prefs.here) return prefs.here;
-  if (profile) return { lat: profile.lat, lon: profile.lon };
-  return { lat: 51.5074, lon: -0.1278 };
+  let tz = "";
+  try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch { }
+  const city = CITIES.find(c => c[4] === tz);
+  if (city) return { lat: city[2], lon: city[3] };
+  // Unknown zone: estimate longitude from the clock offset (15 degrees per hour) at a mid latitude.
+  return { lat: 40, lon: Math.max(-180, Math.min(180, -new Date().getTimezoneOffset() / 4)) };
 }
 function computePhase() {
-  const forced = phaseOverride || (prefs.phase !== "auto" ? prefs.phase : null);
+  const forced = phaseOverride;
   if (forced) return forced;
   const { lat, lon } = placeForColour(), now = new Date();
   const alt = sunAltitude(now, lat, lon);
@@ -669,14 +675,14 @@ function openMenu() {
     trash: '<svg viewBox="0 0 24 24"><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/></svg>',
   };
   const phases = ["auto", "dawn", "day", "dusk", "night"];
-  const cur = phaseOverride || prefs.phase || "auto";
+  const cur = phaseOverride || "auto";
   openSheet(`
     <h2 id="sheetTitle">Æther</h2>
     <div class="menu-list">
       <button class="menu-item" id="mShare">${ic.share}<span>Share Æther<small>Send the app to a friend</small></span></button>
       ${isStandalone() ? "" : `<button class="menu-item" id="mInstall">${ic.home}<span>Add to home screen<small>Open it full-screen, like an app</small></span></button>`}
-      <button class="menu-item" id="mHere">${ic.pin}<span>${prefs.useHere ? "Colour the sky for where I am" : "Use where I am for the sky colours"}<small>${prefs.useHere ? "On. Tap to use your birth city again" : "Off. Colours follow sunrise and sunset in your birth city"}</small></span></button>
-      <div class="menu-item" style="display:block;cursor:default">Preview time of day<small>See all four looks. Auto follows the real Sun.</small>
+      <button class="menu-item" id="mHere">${ic.pin}<span>${prefs.useHere ? "Colour the sky for where I am" : "Use where I am for the sky colours"}<small>${prefs.useHere ? "On. Tap to follow your time zone instead" : "Off. Colours follow sunrise and sunset in your time zone"}</small></span></button>
+      <div class="menu-item" style="display:block;cursor:default">Preview time of day<small>Try each look for a moment. Auto follows the real Sun where you are.</small>
         <div class="chips" id="mPhase" style="margin-top:10px">${phases.map(p => `<button type="button" class="chip" aria-pressed="${p === cur}" data-v="${p}">${p}</button>`).join("")}</div>
       </div>
       <button class="menu-item" id="mTip">${ic.heart}<span>Chip in<small>Æther is free, with no ads and no paywall</small></span></button>
@@ -692,7 +698,7 @@ function openMenu() {
   $("#mTip").onclick = openTip;
   $("#mPhase").onclick = e => {
     const b = e.target.closest(".chip"); if (!b) return;
-    phaseOverride = null; prefs.phase = b.dataset.v; store.set("prefs", prefs);
+    phaseOverride = b.dataset.v === "auto" ? null : b.dataset.v;
     $("#mPhase").querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", x === b));
     applyPhase();
   };
@@ -702,7 +708,7 @@ function openMenu() {
     navigator.geolocation.getCurrentPosition(p => {
       prefs.useHere = true; prefs.here = { lat: +p.coords.latitude.toFixed(2), lon: +p.coords.longitude.toFixed(2) };
       store.set("prefs", prefs); applyPhase(); openMenu(); toast("The sky now follows the Sun where you are.");
-    }, () => toast("Location wasn't shared. The sky keeps following your birth city."), { maximumAge: 36e5, timeout: 10000 });
+    }, () => toast("Location wasn't shared. The sky keeps following your time zone."), { maximumAge: 36e5, timeout: 10000 });
   };
   $("#mEdit").onclick = () => { closeSheet(); startOnboarding(); showStep(1); };
   $("#mErase").onclick = () => {
