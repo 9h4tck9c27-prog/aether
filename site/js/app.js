@@ -9,7 +9,10 @@ import { Sky } from "./sky3d.js";
 const A = window.Astronomy;
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const TIP_URL = ""; // Ko-fi page goes here once it exists.
+const TIP_URL = "https://buy.stripe.com/test_dRmdR9dtmchA4mJaLPfYY00"; // Stripe payment link for tips. Swap for the live link (no "test_") before launch.
+const SITE = "https://myaether.info";
+const INSTAGRAM = "https://www.instagram.com/_aether.aether_";
+const IG_HANDLE = "@_aether.aether_";
 
 // ---------- Storage (on this device only) ----------
 const store = {
@@ -697,14 +700,14 @@ async function renderShareImage(r, deck) {
   }
   g.textAlign = "center";
   g.fillStyle = "#F7F2FB"; g.font = 'italic 400 50px "Fraunces", Georgia, serif'; g.fillText("æther", cx, H - 110);
-  g.fillStyle = "rgba(247,242,251,.6)"; g.font = '400 26px "Figtree", sans-serif'; g.fillText(location.host, cx, H - 66);
+  g.fillStyle = "rgba(247,242,251,.6)"; g.font = '400 26px "Figtree", sans-serif'; g.fillText(`${SITE.replace("https://", "")}  ·  ${IG_HANDLE}`, cx, H - 66);
   return new Promise(res => c.toBlob(res, "image/png"));
 }
 async function shareCard(r, deck) {
   const blob = await renderShareImage(r, deck);
   const close = (deck || []).find(c => c.type === "close"), line = close && close.line;
   const file = new File([blob], "aether-sky.png", { type: "image/png" });
-  const text = `${line && line.text ? "“" + line.text + "”" + (line.author ? " — " + line.author : "") + "\n\n" : ""}My sky today on Æther: ${location.origin}`;
+  const text = `${line && line.text ? "“" + line.text + "”" + (line.author ? " — " + line.author : "") + "\n\n" : ""}My sky today on Æther: ${SITE}`;
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try { await navigator.share({ files: [file], text }); } catch { /* cancelled */ }
     return;
@@ -715,7 +718,7 @@ async function shareCard(r, deck) {
   toast("Saved your sky card as an image.");
 }
 async function shareApp() {
-  const data = { title: "Æther", text: "Your daily astrological weather. It's not just you.", url: location.origin + "/" };
+  const data = { title: "Æther", text: "Your daily astrological weather. It's not just you.", url: SITE + "/" };
   if (navigator.share) { try { await navigator.share(data); } catch { } return; }
   try { await navigator.clipboard.writeText(data.url); toast("Link copied."); } catch { toast(data.url); }
 }
@@ -847,6 +850,7 @@ function openMenu() {
       <div class="menu-item" style="display:block;cursor:default">Preview time of day<small>Try each look for a moment. Auto follows the real Sun where you are.</small>
         <div class="chips" id="mPhase" style="margin-top:10px">${phases.map(p => `<button type="button" class="chip" aria-pressed="${p === cur}" data-v="${p}">${p}</button>`).join("")}</div>
       </div>
+      <a class="menu-item" href="${INSTAGRAM}" target="_blank" rel="noopener">${ic.share.replace(/<path[\s\S]*$/, '<rect x="4" y="4" width="16" height="16" rx="5"/><circle cx="12" cy="12" r="3.6"/><circle cx="17" cy="7" r=".6"/></svg>')}<span>Follow on Instagram<small>${IG_HANDLE}</small></span></a>
       <button class="menu-item" id="mTip">${ic.heart}<span>Chip in<small>Æther is free, with no ads and no paywall</small></span></button>
       <button class="menu-item" id="mEdit">${ic.edit}<span>Edit birth details</span></button>
       <button class="menu-item" id="mErase">${ic.trash}<span>Erase everything on this phone</span></button>
@@ -884,7 +888,7 @@ function openMenu() {
 function openTip(e) {
   if (e) e.preventDefault();
   if (TIP_URL) return void open(TIP_URL, "_blank", "noopener");
-  toast("The tip page opens here once the Ko-fi page is set up.");
+  toast("The tip page isn't ready yet.");
 }
 
 // ---------- Wiring ----------

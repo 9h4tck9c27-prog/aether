@@ -573,3 +573,4 @@ body.introing .legal-rail, body.onboarding .legal-rail { opacity: 0; pointer-eve
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 .card [tabindex="-1"]:focus { outline: none; }
+a.menu-item { text-decoration: none; color: inherit; }
