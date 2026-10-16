@@ -11,9 +11,9 @@ const TIP_URL = ""; // Ko-fi page goes here once it exists.
 
 // ---------- Storage (on this device only) ----------
 const store = {
-  get(k, d) { try { const v = localStorage.getItem("skymood:" + k); return v ? JSON.parse(v) : d; } catch { return d; } },
-  set(k, v) { try { localStorage.setItem("skymood:" + k, JSON.stringify(v)); } catch { /* storage unavailable */ } },
-  del(k) { try { localStorage.removeItem("skymood:" + k); } catch { } },
+  get(k, d) { try { const v = localStorage.getItem("aether:" + k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("aether:" + k, JSON.stringify(v)); } catch { /* storage unavailable */ } },
+  del(k) { try { localStorage.removeItem("aether:" + k); } catch { } },
 };
 let profile = store.get("profile", null);
 let entries = store.get("entries", []);
@@ -241,7 +241,7 @@ function showReading(r, entry) {
     : r.bucket === "golden"
       ? `<button class="primary" id="bottleBtn">Bottle this</button>`
       : `<button class="primary" id="doneBtn">Done</button>`;
-  const tip = r.bucket === "golden" ? `<p class="tip-line">Skymood is free, with no ads and no paywall. <a href="#" class="tip-link">Chip in to keep it that way.</a></p>` : "";
+  const tip = r.bucket === "golden" ? `<p class="tip-line">Æther is free, with no ads and no paywall. <a href="#" class="tip-link">Chip in to keep it that way.</a></p>` : "";
   openSheet(`
     <article class="reading">
       <h2 id="sheetTitle">${esc(r.headline)}</h2>
@@ -343,26 +343,26 @@ async function renderCard(r) {
   g.fillStyle = "rgba(247,242,251,.75)"; g.font = '400 30px "Figtree", sans-serif';
   const moonBits = `Moon in ${r.sig.moonSign}, in ${r.sig.moonNak.name}, ${r.sig.moonNak.gloss}.`;
   wrap(g, moonBits, W - 180).slice(0, 2).forEach((l, i) => g.fillText(l, 90, 890 + lines.length * 80 + 20 + i * 42));
-  g.fillStyle = "#F7F2FB"; g.font = 'italic 400 44px "Fraunces", Georgia, serif'; g.fillText("skymood", 90, H - 90);
+  g.fillStyle = "#F7F2FB"; g.font = 'italic 400 44px "Fraunces", Georgia, serif'; g.fillText("æther", 90, H - 90);
   g.fillStyle = "rgba(247,242,251,.6)"; g.font = '400 26px "Figtree", sans-serif';
   g.textAlign = "right"; g.fillText(location.host, W - 90, H - 94);
   return new Promise(res => c.toBlob(res, "image/png"));
 }
 async function shareCard(r) {
   const blob = await renderCard(r);
-  const file = new File([blob], "skymood-sky.png", { type: "image/png" });
-  const text = `My sky today on Skymood. ${location.origin}`;
+  const file = new File([blob], "aether-sky.png", { type: "image/png" });
+  const text = `My sky today on Æther. ${location.origin}`;
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try { await navigator.share({ files: [file], text }); } catch { /* cancelled */ }
     return;
   }
   const url = URL.createObjectURL(blob);
-  const a = document.createElement("a"); a.href = url; a.download = "skymood-sky.png"; a.click();
+  const a = document.createElement("a"); a.href = url; a.download = "aether-sky.png"; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
   toast("Saved your sky card as an image.");
 }
 async function shareApp() {
-  const data = { title: "Skymood", text: "Your daily astrological weather. It's not just you.", url: location.origin + "/" };
+  const data = { title: "Æther", text: "Your daily astrological weather. It's not just you.", url: location.origin + "/" };
   if (navigator.share) { try { await navigator.share(data); } catch { } return; }
   try { await navigator.clipboard.writeText(data.url); toast("Link copied."); } catch { toast(data.url); }
 }
@@ -422,7 +422,7 @@ function openJournal() {
   };
   $("#exportBtn").onclick = () => {
     const blob = new Blob([JSON.stringify({ profile, entries }, null, 2)], { type: "application/json" });
-    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `skymood-journal-${dayKey()}.json`; a.click();
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `aether-journal-${dayKey()}.json`; a.click();
   };
   $("#importInput").onchange = async e => {
     try {
@@ -430,7 +430,7 @@ function openJournal() {
       const known = new Set(entries.map(x => x.id));
       entries = entries.concat((data.entries || []).filter(x => !known.has(x.id))).sort((a, b) => a.id - b.id);
       store.set("entries", entries); toast("Backup restored."); openJournal();
-    } catch { toast("That file isn't a Skymood backup."); }
+    } catch { toast("That file isn't a Æther backup."); }
   };
 }
 
@@ -454,11 +454,11 @@ function openInstall() {
         <div class="install-step"><span class="badge">${plus}</span><p>Scroll down and choose Add to Home Screen.</p></div>
       </div>
       <button class="ghost" id="notNow" style="width:100%">Not now</button>`
-    : deferredPrompt ? `<button class="primary" id="installNow">Add Skymood</button><button class="ghost" id="notNow" style="width:100%;margin-top:10px">Not now</button>`
+    : deferredPrompt ? `<button class="primary" id="installNow">Add Æther</button><button class="ghost" id="notNow" style="width:100%;margin-top:10px">Not now</button>`
       : `<p>Use your browser's menu and choose Install app or Add to Home Screen.</p><button class="ghost" id="notNow" style="width:100%">Got it</button>`;
   openSheet(`
     <img class="install-icon" src="/icons/icon-192.png" alt="">
-    <h2 id="sheetTitle">Keep Skymood on your home screen</h2>
+    <h2 id="sheetTitle">Keep Æther on your home screen</h2>
     <p>It opens full-screen like an app, and your sky journal stays safer on this phone.</p>
     ${body}
   `);
@@ -480,19 +480,19 @@ function openMenu() {
   const phases = ["auto", "dawn", "day", "dusk", "night"];
   const cur = phaseOverride || prefs.phase || "auto";
   openSheet(`
-    <h2 id="sheetTitle">Skymood</h2>
+    <h2 id="sheetTitle">Æther</h2>
     <div class="menu-list">
-      <button class="menu-item" id="mShare">${ic.share}<span>Share Skymood<small>Send the app to a friend</small></span></button>
+      <button class="menu-item" id="mShare">${ic.share}<span>Share Æther<small>Send the app to a friend</small></span></button>
       ${isStandalone() ? "" : `<button class="menu-item" id="mInstall">${ic.home}<span>Add to home screen<small>Open it full-screen, like an app</small></span></button>`}
       <button class="menu-item" id="mHere">${ic.pin}<span>${prefs.useHere ? "Colour the sky for where I am" : "Use where I am for the sky colours"}<small>${prefs.useHere ? "On. Tap to use your birth city again" : "Off. Colours follow sunrise and sunset in your birth city"}</small></span></button>
       <div class="menu-item" style="display:block;cursor:default">Preview time of day<small>See all four looks. Auto follows the real Sun.</small>
         <div class="chips" id="mPhase" style="margin-top:10px">${phases.map(p => `<button type="button" class="chip" aria-pressed="${p === cur}" data-v="${p}">${p}</button>`).join("")}</div>
       </div>
-      <button class="menu-item" id="mTip">${ic.heart}<span>Chip in<small>Skymood is free, with no ads and no paywall</small></span></button>
+      <button class="menu-item" id="mTip">${ic.heart}<span>Chip in<small>Æther is free, with no ads and no paywall</small></span></button>
       <button class="menu-item" id="mEdit">${ic.edit}<span>Edit birth details</span></button>
       <button class="menu-item" id="mErase">${ic.trash}<span>Erase everything on this phone</span></button>
     </div>
-    <p class="credits">Planet positions are calculated on your phone with Astronomy Engine (open source). Space weather comes from NOAA's Space Weather Prediction Center. Lines from the traditions are paraphrased in our own words. Skymood is for reflection, not prediction.</p>
+    <p class="credits">Planet positions are calculated on your phone with Astronomy Engine (open source). Space weather comes from NOAA's Space Weather Prediction Center. Lines from the traditions are paraphrased in our own words. Æther is for reflection, not prediction.</p>
   `);
   $("#mShare").onclick = shareApp;
   const inst = $("#mInstall"); if (inst) inst.onclick = openInstall;
@@ -541,4 +541,4 @@ if ("serviceWorker" in navigator && location.protocol === "https:") navigator.se
 // Testing hooks for previews: ?phase=dusk
 const qp = new URLSearchParams(location.search).get("phase");
 if (qp && ["dawn", "day", "dusk", "night"].includes(qp)) { phaseOverride = qp; applyPhase(); }
-window.__skymood = { openCheckin, openJournal, openMenu, openInstall, writeReading: () => writeReading };
+window.__aether = { openCheckin, openJournal, openMenu, openInstall, writeReading: () => writeReading };

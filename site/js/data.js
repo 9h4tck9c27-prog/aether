@@ -1,4 +1,4 @@
-// Static reference data for Skymood. Everything here ships with the app, so no lookup service is needed.
+// Static reference data for Æther. Everything here ships with the app, so no lookup service is needed.
 
 // Prototype city list: [name, region, lat, lon, IANA time zone]. The full app swaps this for the GeoNames list.
 export const CITIES = [
