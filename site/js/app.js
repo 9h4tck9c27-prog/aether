@@ -377,7 +377,7 @@ function openCheckin() {
 
 // ---------- The reading: consult the sky, then swipe through cards ----------
 let reading = null;
-const CONSULT_STEP_MS = 950;
+const CONSULT_STEP_MS = 1150;
 
 function startReading(r, entry, { consult = true, care = false } = {}) {
   document.body.classList.add("reading-mode");

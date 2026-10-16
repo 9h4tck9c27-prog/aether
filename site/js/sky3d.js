@@ -35,26 +35,33 @@ const ringFrag = `
     gl_FragColor = vec4(c, uAlpha);
   }`;
 
+// Textures are drawn large so they stay smooth when the camera flies right past them.
+let ANISO = 1;
+function finishTexture(c) {
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter;
+  t.anisotropy = ANISO;
+  return t;
+}
 function glowTexture() {
-  const c = document.createElement("canvas"); c.width = c.height = 128;
+  const S = 512, c = document.createElement("canvas"); c.width = c.height = S;
   const g = c.getContext("2d");
-  const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
-  grad.addColorStop(0, "rgba(255,255,255,1)");
-  grad.addColorStop(0.18, "rgba(255,255,255,0.85)");
-  grad.addColorStop(0.45, "rgba(255,255,255,0.22)");
-  grad.addColorStop(1, "rgba(255,255,255,0)");
-  g.fillStyle = grad; g.fillRect(0, 0, 128, 128);
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+  const grad = g.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+  // A soft, many-stop falloff (roughly gaussian) so there are no visible bands.
+  for (let i = 0; i <= 16; i++) { const x = i / 16; grad.addColorStop(x, `rgba(255,255,255,${(Math.exp(-x * x * 9) * (1 - x)).toFixed(4)})`); }
+  g.fillStyle = grad; g.fillRect(0, 0, S, S);
+  return finishTexture(c);
 }
 
 function glyphTexture(glyph, color) {
-  const c = document.createElement("canvas"); c.width = c.height = 96;
+  const S = 256, c = document.createElement("canvas"); c.width = c.height = S;
   const g = c.getContext("2d");
   g.fillStyle = color; g.textAlign = "center"; g.textBaseline = "middle";
-  const size = glyph.length > 2 ? 34 : 56;
+  const size = glyph.length > 2 ? 90 : 150;
   g.font = `${size}px "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols", "DejaVu Sans", serif`;
-  g.fillText(glyph, 48, 52);
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+  g.fillText(glyph, S / 2, S / 2 + 10);
+  return finishTexture(c);
 }
 
 const PLANET_COLORS = {
@@ -70,6 +77,7 @@ export class Sky {
     this.reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
     this.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+    ANISO = Math.min(8, this.renderer.capabilities.getMaxAnisotropy());
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
     this.camera.position.set(0, 0, BASE_DIST);
@@ -113,7 +121,7 @@ export class Sky {
   ring(radius, tube, offset, alpha) {
     const mat = this.material(offset, alpha);
     this.ringMats.push(mat);
-    return new THREE.Mesh(new THREE.TorusGeometry(radius, tube, 10, 260), mat);
+    return new THREE.Mesh(new THREE.TorusGeometry(radius, tube, 12, 720), mat);
   }
 
   sprite(map, color, scale, opacity = 1, additive = true) {
@@ -270,7 +278,7 @@ export class Sky {
     const lift = Math.max(0.35, a.distanceTo(b) * 0.35);
     mid.z += lift;
     const curve = new THREE.QuadraticBezierCurve3(a, mid, b);
-    const geo = new THREE.TubeGeometry(curve, 80, 0.016, 6, false);
+    const geo = new THREE.TubeGeometry(curve, 120, 0.016, 10, false);
     const mat = this.material(Math.random(), 0.95, 1);
     const mesh = new THREE.Mesh(geo, mat);
     geo.setDrawRange(0, 0);
@@ -367,6 +375,9 @@ export class Sky {
     this.consulting = true;
     this.consultStart = performance.now();
     this.consultDur = duration;
+    this.scene.updateMatrixWorld();
+    const toCam = this.camera.position.clone().applyMatrix4(new THREE.Matrix4().copy(this.ecliptic.matrixWorld).invert());
+    this.consultStartAngle = Math.atan2(toCam.y, toCam.x) - 0.5;
     this.natalRing.userData.alphaGoal = 1;
     let i = 0;
     const next = () => {
@@ -429,7 +440,7 @@ export class Sky {
 
   frame() {
     const dt = Math.min(this.clock.getDelta(), 0.05);
-    const targetSpeed = this.consulting ? 7 : 1;
+    const targetSpeed = this.consulting ? 2.2 : 1;
     this.speed += (targetSpeed - this.speed) * (1 - Math.pow(0.1, dt));
     this.time += dt * this.speed;
     const k = 1 - Math.pow(0.04, dt);
@@ -490,20 +501,35 @@ export class Sky {
       this.camera.position.set(0, (1 - eA) * 0.35, this.baseDist * (0.14 + 0.86 * eA));
       this.camLook.set(0, 0, 0);
     } else if (this.consulting && this.consultStart != null && !this.reduced) {
-      // Consulting: swoop into the rings, circle once around the inside, then pull back out.
+      // Consulting: glide down onto the outer rim and fly along it, so the zodiac signs
+      // stream past the lens, then rise back out. Every frame is a pure function of time
+      // (no chasing a moving target), which keeps the motion smooth.
       const p = Math.min(1, (performance.now() - this.consultStart) / this.consultDur);
-      const ease = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
-      const az = ease * Math.PI * 2;
-      const dip = Math.pow(Math.sin(Math.PI * p), 0.65);
-      const d = this.baseDist * (1 - 0.86 * dip);
-      const lift = Math.sin(Math.PI * 2 * p) * 0.55 * d + dip * 0.6;
-      const goal = new THREE.Vector3(Math.sin(az) * d, lift, Math.cos(az) * d);
-      this.camera.position.lerp(goal, 1 - Math.pow(0.0005, dt));
-      this.camLook.lerp(new THREE.Vector3(0, 0, 0), slow);
+      const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * t * (t * (t * 6 - 15) + 10); };
+      const w = smooth(0, 0.22, p) * (1 - smooth(0.8, 1, p));          // how far "on the rim" we are
+      // Travel angle along the ring: gentle start, steady glide, gentle finish.
+      const travel = smooth(0.04, 0.96, p);
+      const startA = this.consultStartAngle ?? 0;
+      const a = startA + travel * Math.PI * 1.55;
+      // In the ring's own plane: just outside the sign glyphs, a little above the plane.
+      const R = RING_R * 1.32, up = 0.32 + 0.12 * Math.sin(p * Math.PI * 2);
+      const camLocal = new THREE.Vector3(Math.cos(a) * R, Math.sin(a) * R, up);
+      const ahead = a + 0.62;
+      const lookLocal = new THREE.Vector3(Math.cos(ahead) * RING_R * 0.92, Math.sin(ahead) * RING_R * 0.92, 0.02);
+      this.ecliptic.updateMatrixWorld();
+      const camW = camLocal.applyMatrix4(this.ecliptic.matrixWorld);
+      const lookW = lookLocal.applyMatrix4(this.ecliptic.matrixWorld);
+      const base = new THREE.Vector3(0, 0, this.baseDist);
+      this.camera.position.copy(base).lerp(camW, w);
+      this.camLook.set(0, 0, 0).lerp(lookW, w);
+      // Bank with the ring: the camera's "up" leans toward the ring's axis while gliding.
+      const normal = new THREE.Vector3(0, 0, 1).transformDirection(this.ecliptic.matrixWorld);
+      this.camera.up.set(0, 1, 0).lerp(normal, w * 0.85).normalize();
     } else {
       this.camera.position.lerp(this.camGoal.pos, slow);
       this.camLook.lerp(this.camGoal.look, slow);
     }
+    if (!(this.consulting && this.consultStart != null && !this.reduced)) this.camera.up.lerp(new THREE.Vector3(0, 1, 0), slow).normalize();
     this.camera.lookAt(this.camLook);
 
     // Shift the projection so the sphere's centre lands in the middle of its slot.
