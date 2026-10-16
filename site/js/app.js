@@ -480,7 +480,7 @@ function renderCard(c, i, r) {
       + (c.line.author ? rv(`<p class="cite">${esc(c.line.author)}${c.line.work ? `, <i>${esc(c.line.work)}</i>` : ""}</p>`, d++) : "")
       + rv(`<div class="card-actions">
           <button class="primary share-btn" data-act="share"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4"/><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></svg>Share</button>
-          <div class="row"><button class="ghost" data-act="save"${saved ? " disabled" : ""}>${saved ? "Saved" : "Save this reading"}</button><button class="ghost" data-act="done">Done</button></div>
+          <div class="row">${isStandalone() ? "" : `<button class="ghost" data-act="install">Add æther to home screen</button>`}<button class="ghost" data-act="save"${saved ? " disabled" : ""}>${saved ? "Saved to journal" : "Save to journal"}</button></div>
           ${c.bucket === "heavy" ? `<button class="text-btn" data-act="breathe">Take a slow breath with the sky</button>` : ""}
         </div>`, d++)
       + (c.bucket === "golden" ? rv(`<div class="card-tip"><button class="tip-btn" type="button"><span class="tip-heart" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20.5s-7.5-4.6-7.5-10.3A4.3 4.3 0 0 1 12 7.4a4.3 4.3 0 0 1 7.5 2.8c0 5.7-7.5 10.3-7.5 10.3z"/></svg></span><span class="tip-text"><b>Chip in to keep æther free</b><small>No ads, no paywall. Tips keep the sky turning.</small></span><span class="tip-arrow" aria-hidden="true">›</span></button></div>`, d++) : "");
@@ -569,9 +569,10 @@ function cardAction(b) {
   if (act === "share") return shareCard(reading.r, reading.deck);
   if (act === "breathe") return startRitual();
   if (act === "done") return endReading();
+  if (act === "install") return openInstall();
   if (act === "save") {
     reading.entry.bottled = true; store.set("entries", entries);
-    sky.bloom(); b.disabled = true; b.textContent = "Saved";
+    sky.bloom(); b.disabled = true; b.textContent = "Saved to journal";
     toast("Saved to your journal.");
   }
 }
