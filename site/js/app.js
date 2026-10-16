@@ -153,6 +153,7 @@ function showStep(i) {
   const first = document.querySelector(`.ob-step[data-step="${i}"] input, .ob-step[data-step="${i}"] button`);
   if (first && i > 0) setTimeout(() => first.focus({ preventScroll: true }), 350);
 }
+let obEditing = false;
 function startOnboarding() {
   const ob = $("#onboard"); ob.hidden = false; document.body.classList.add("onboarding"); showStep(0);
   requestAnimationFrame(() => updateSlot());
@@ -185,20 +186,54 @@ function startOnboarding() {
     e.preventDefault();
     draft.name = $("#obName").value.trim();
     draft.pronouns = pron;
-    profile = draft; store.set("profile", profile);
+    if (obEditing) {
+      // Editing from the menu: save and go home, no reading.
+      obEditing = false;
+      profile = { ...draft }; store.set("profile", profile);
+      natal = natalChart(profile); sky.setNatal(natal.pos, natal.asc); sky.bloom();
+      ob.hidden = true; document.body.classList.remove("onboarding");
+      requestAnimationFrame(() => updateSlot()); renderHome(); toast("Birth details updated.");
+      return;
+    }
+    showStep(4);
+  };
+  // How today feels, asked once during setup so the first reading starts right after the reveal.
+  const obFeel = $("#obFeel");
+  const obUpdate = () => {
+    const v = obFeel.value / 100;
+    $("#obFeelWord").textContent = moodWord(v);
+    const tint = document.querySelector(".mood-tint");
+    tint.style.setProperty("--tint", v < 0.5 ? "rgba(110, 130, 190, .55)" : "rgba(255, 184, 154, .55)");
+    tint.style.opacity = Math.abs(v - 0.5) * 1.6;
+  };
+  obFeel.oninput = obUpdate; obUpdate();
+  ob.querySelector('[data-step="4"]').onsubmit = e => {
+    e.preventDefault();
+    draft.feel = obFeel.value / 100; draft.words = $("#obWords").value;
+    profile = { ...draft }; delete profile.feel; delete profile.words;
+    store.set("profile", profile);
     natal = natalChart(profile);
     sky.setNatal(natal.pos, natal.asc); sky.bloom();
     const pos = natal.pos;
     const who = profile.name ? `${profile.name}, you` : "You";
     $("#revealText").textContent = `${who} arrived with the Sun in ${signOf(pos.Sun.lon)}, the Moon in ${signOf(pos.Moon.lon)}${natal.hasTime ? `, and ${signOf(natal.asc)} rising` : ""}.`;
-    let sub = `Vedic astrology places your Moon in ${natal.moonNak.name}, ${natal.moonNak.gloss}.`;
-    if (natal.nightBirth != null) sub += natal.nightBirth
-      ? " You were born at night, so in the Hellenistic tradition the Moon leads your chart."
-      : " You were born by day, so in the Hellenistic tradition the Sun leads your chart.";
+    let sub = `In Vedic astrology, your Moon sits in ${natal.moonNak.name}, ${natal.moonNak.gloss}.`;
+    if (natal.nightBirth != null) sub += natal.nightBirth ? " You were born at night, so the Moon leads your chart." : " You were born by day, so the Sun leads your chart.";
     $("#revealSub").textContent = sub;
-    showStep(4);
+    showStep(5);
   };
-  ob.querySelector("[data-finish]").onclick = () => { requestMotion(false); ob.hidden = true; document.body.classList.remove("onboarding"); requestAnimationFrame(() => updateSlot()); renderHome(); setTimeout(showTiltHint, 1500); };
+  // Straight from the reveal into the first reading.
+  ob.querySelector("[data-finish]").onclick = () => {
+    requestMotion(false);
+    ob.hidden = true; document.body.classList.remove("onboarding");
+    document.querySelector(".mood-tint").style.opacity = 0;
+    renderHome();
+    const feel = draft.feel ?? 0.55, text = draft.words || "";
+    const r = writeReading({ feel, chips: [], text, natal, profile, kp });
+    const entry = { id: Date.now(), day: dayKey(), feel, chips: [], text: text.trim(), headline: r.headline, cond: r.cond, bottled: false };
+    entries.push(entry); store.set("entries", entries);
+    startReading(r, entry, { consult: true });
+  };
 }
 
 // ---------- Sheet ----------
@@ -755,7 +790,7 @@ function openMenu() {
       store.set("prefs", prefs); applyPhase(); openMenu(); toast("The sky now follows the Sun where you are.");
     }, () => toast("Location wasn't shared. The sky keeps following your time zone."), { maximumAge: 36e5, timeout: 10000 });
   };
-  $("#mEdit").onclick = () => { closeSheet(); startOnboarding(); showStep(1); };
+  $("#mEdit").onclick = () => { closeSheet(); obEditing = true; startOnboarding(); showStep(1); };
   $("#mErase").onclick = () => {
     if (!confirm("Erase your birth details and every check-in on this phone? This can't be undone.")) return;
     ["profile", "entries", "prefs", "tiltOk"].forEach(store.del);

@@ -113,13 +113,22 @@
           <button type="button" class="chip" data-v="">skip</button>
         </div>
       </fieldset>
+      <button class="primary" type="submit">Next</button>
+    </form>
+    <form class="ob-step" data-step="4" hidden>
+      <h2>How's today?</h2>
+      <p class="feel-word" id="obFeelWord"></p>
+      <input class="feel-range" id="obFeel" type="range" min="0" max="100" value="55" aria-label="How today feels, from heavy to golden">
+      <div class="ends"><span>Heavy</span><span>Golden</span></div>
+      <textarea id="obWords" placeholder="Tell the sky what happened, in a sentence or two (optional)" maxlength="400"></textarea>
+      <p class="hint">Your words stay on this phone. They are never sent anywhere.</p>
       <button class="primary" type="submit">Show me my sky</button>
     </form>
-    <div class="ob-step reveal" data-step="4" hidden>
+    <div class="ob-step reveal" data-step="5" hidden>
       <p class="reveal-kicker">The sky you arrived under</p>
       <h2 id="revealText"></h2>
       <p class="ob-sub" id="revealSub"></p>
-      <button class="primary" data-finish>See today's sky</button>
+      <button class="primary cta" data-finish><span class="cta-label">Read my sky</span><span class="sparkles" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></button>
     </div>
   </section>
 
