@@ -1,0 +1,83 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face { font-family: "Fraunces"; font-style: italic; font-weight: 400; src: url("../node_modules/@fontsource/fraunces/files/fraunces-latin-400-italic.woff2") format("woff2"); }
+@font-face { font-family: "Fraunces"; font-style: normal; font-weight: 400; src: url("../node_modules/@fontsource/fraunces/files/fraunces-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Figtree"; font-weight: 500; src: url("../node_modules/@fontsource/figtree/files/figtree-latin-500-normal.woff2") format("woff2"); }
+body { margin: 0; background: #000; }
+canvas { display: block; }
+</style></head>
+<body>
+<script>
+const BRAND = [[184,164,255],[158,230,212],[255,184,154],[247,200,232]];
+function brand(t) {
+  t = ((t % 1) + 1) % 1 * 4; const i = Math.floor(t), f = t - i, a = BRAND[i], b = BRAND[(i + 1) % 4];
+  const s = f * f * (3 - 2 * f);
+  return `rgb(${a.map((v, k) => Math.round(v + (b[k] - v) * s)).join(",")})`;
+}
+function ring(g, cx, cy, rx, ry, rot, w, alpha, off) {
+  const N = 240;
+  g.save(); g.translate(cx, cy); g.rotate(rot); g.lineWidth = w; g.lineCap = "round"; g.globalAlpha = alpha;
+  for (let i = 0; i < N; i++) {
+    const a0 = i / N * Math.PI * 2, a1 = (i + 1.4) / N * Math.PI * 2;
+    g.strokeStyle = brand(i / N + off); g.beginPath();
+    g.ellipse(0, 0, rx, ry, 0, a0, a1); g.stroke();
+  }
+  g.restore();
+}
+function glow(g, x, y, r, col = "255,255,255", a = 1) {
+  const gr = g.createRadialGradient(x, y, 0, x, y, r);
+  gr.addColorStop(0, `rgba(${col},${a})`); gr.addColorStop(0.25, `rgba(${col},${a * 0.7})`); gr.addColorStop(1, `rgba(${col},0)`);
+  g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+}
+function sphere(g, cx, cy, R, detail = true) {
+  const halo = g.createRadialGradient(cx, cy, 0, cx, cy, R * 1.35);
+  halo.addColorStop(0, "rgba(184,164,255,.35)"); halo.addColorStop(1, "rgba(184,164,255,0)");
+  g.fillStyle = halo; g.beginPath(); g.arc(cx, cy, R * 1.35, 0, 7); g.fill();
+  ring(g, cx, cy, R * 0.98, R * 0.98, 0, R * 0.018, 0.45, 0.55);              // meridian circle
+  ring(g, cx, cy, R * 0.34, R * 0.98, 0, R * 0.016, 0.5, 0.85);               // meridian seen edge-on
+  ring(g, cx, cy, R, R * 0.36, 0.42, R * 0.022, 0.6, 0.3);                    // equator
+  ring(g, cx, cy, R, R * 0.36, -0.2, R * 0.05, 1, 0);                         // ecliptic, the hero ring
+  if (detail) {
+    const planets = [[0.4, 0.09, "255,217,168"], [2.3, 0.07, "255,194,214"], [3.6, 0.06, "158,230,212"], [5.2, 0.075, "247,242,251"]];
+    for (const [a, s, c] of planets) {
+      const x = Math.cos(a) * R, y = Math.sin(a) * R * 0.36;
+      const px = cx + x * Math.cos(-0.2) - y * Math.sin(-0.2), py = cy + x * Math.sin(-0.2) + y * Math.cos(-0.2);
+      glow(g, px, py, R * s * 2.2, c, 1);
+    }
+  }
+  glow(g, cx, cy, R * 0.32, "247,242,251", 1);
+}
+function background(g, w, h) {
+  const bg = g.createRadialGradient(w * 0.5, h * 0.42, 0, w * 0.5, h * 0.5, Math.max(w, h) * 0.75);
+  bg.addColorStop(0, "#35225e"); bg.addColorStop(0.55, "#1C1230"); bg.addColorStop(1, "#0f0820");
+  g.fillStyle = bg; g.fillRect(0, 0, w, h);
+}
+function stars(g, w, h, n, seed = 7) {
+  let s = seed; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < n; i++) { g.fillStyle = `rgba(255,255,255,${rnd() * 0.6 + 0.15})`; g.beginPath(); g.arc(rnd() * w, rnd() * h, rnd() * Math.max(w, h) / 900 + 0.4, 0, 7); g.fill(); }
+}
+function make(kind, size) {
+  const [w, h] = kind === "og" ? [1200, 630] : [size, size];
+  const c = document.createElement("canvas"); c.width = w; c.height = h; c.id = "art"; document.body.appendChild(c);
+  const g = c.getContext("2d");
+  background(g, w, h);
+  if (kind === "og") {
+    stars(g, w, h, 160);
+    sphere(g, 330, 315, 205);
+    g.fillStyle = "#F7F2FB"; g.font = 'italic 400 104px "Fraunces"'; g.fillText("skymood", 610, 300);
+    g.fillStyle = "rgba(247,242,251,.82)"; g.font = '400 35px "Fraunces"'; g.fillText("Your daily astrological weather.", 614, 368);
+    g.fillStyle = "rgba(247,242,251,.6)"; g.font = '500 30px "Figtree"'; g.fillText("It's not just you.", 616, 430);
+  } else {
+    const safe = kind === "maskable" ? 0.62 : 0.78;
+    if (size >= 120) stars(g, w, h, Math.round(size / 9));
+    sphere(g, w / 2, h / 2, w * safe / 2, size >= 64);
+  }
+}
+const q = new URLSearchParams(location.search);
+document.fonts.load('italic 400 104px "Fraunces"').then(() => document.fonts.load('500 30px "Figtree"')).then(() => document.fonts.load('400 40px "Fraunces"')).then(() => {
+  make(q.get("kind"), +q.get("size") || 512);
+  document.title = "ready";
+});
+</script>
+</body></html>

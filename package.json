@@ -1,0 +1,20 @@
+{
+  "name": "skymood",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@fontsource-variable/figtree": "^5.3.0",
+    "@fontsource-variable/fraunces": "^5.3.0",
+    "@fontsource/figtree": "^5.3.0",
+    "@fontsource/fraunces": "^5.3.0",
+    "astronomy-engine": "^2.1.19",
+    "three": "^0.169.0"
+  }
+}

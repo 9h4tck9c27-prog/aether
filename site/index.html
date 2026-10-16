@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Skymood</title>
+  <meta name="description" content="Your daily astrological weather. It's not just you.">
+  <meta name="theme-color" content="#1C1230">
+
+  <!-- Home screen app -->
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Skymood">
+
+  <!-- Link previews in Messages and social apps -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Skymood">
+  <meta property="og:title" content="Skymood">
+  <meta property="og:description" content="Your daily astrological weather. It's not just you.">
+  <meta property="og:url" content="https://skymood-sky.netlify.app/">
+  <meta property="og:image" content="https://skymood-sky.netlify.app/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="A glowing celestial sphere with iridescent rings on a deep plum night sky.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Skymood">
+  <meta name="twitter:description" content="Your daily astrological weather. It's not just you.">
+  <meta name="twitter:image" content="https://skymood-sky.netlify.app/og-image.png">
+
+  <link rel="preload" href="/fonts/fraunces-latin-full-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/figtree-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/css/styles.css">
+  <script src="/vendor/astronomy.browser.min.js" defer></script>
+</head>
+<body data-phase="night">
+  <div class="sky-bg" aria-hidden="true"></div>
+  <div class="mood-tint" aria-hidden="true"></div>
+
+  <main id="app">
+    <header class="topbar">
+      <button class="icon-btn" id="journalBtn" aria-label="Open your sky journal">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="7" r="1.6"/><circle cx="12" cy="5" r="1.6"/><circle cx="18" cy="9" r="1.6"/><circle cx="9" cy="14" r="1.6"/><circle cx="16" cy="17" r="1.6"/><path d="M6 7 12 5 18 9 16 17 9 14 6 7" fill="none" stroke-width="1"/></svg>
+      </button>
+      <span class="wordmark">skymood</span>
+      <button class="icon-btn" id="menuBtn" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+      </button>
+    </header>
+
+    <section class="sphere-wrap" aria-label="Today's sky, drawn as a celestial sphere">
+      <canvas id="sky"></canvas>
+      <button class="pill-hint" id="tiltBtn" hidden>Let the sky follow your phone</button>
+    </section>
+
+    <section class="forecast" id="forecast" aria-live="polite">
+      <p class="dateline" id="dateline"></p>
+      <p class="condition" id="condition"><span class="cond-icon" id="condIcon" aria-hidden="true"></span><span id="condLabel"></span></p>
+      <h1 class="forecast-text" id="forecastText">Reading the sky…</h1>
+      <div class="dials" id="dials"></div>
+    </section>
+
+    <footer class="home-foot">
+      <button class="primary" id="checkinBtn">How's today?</button>
+      <p class="tip-line">Skymood is free, with no ads and no paywall. <a href="#" class="tip-link">Chip in to keep it that way.</a></p>
+    </footer>
+  </main>
+
+  <!-- Onboarding -->
+  <section class="onboard" id="onboard" hidden>
+    <div class="ob-step" data-step="0">
+      <p class="ob-brand">skymood</p>
+      <h2>Your daily astrological weather.</h2>
+      <p class="ob-sub">Four thousand years of sky-watching, from Babylon to Varanasi, read against your own chart, the real weather above you, and everyone else under the same sky.</p>
+      <button class="primary" data-next>Begin</button>
+    </div>
+    <form class="ob-step" data-step="1" hidden>
+      <h2>When did you arrive?</h2>
+      <label class="field"><span>Birth date</span><input type="date" id="obDate" required min="1900-01-01"></label>
+      <label class="field"><span>Birth time</span><input type="time" id="obTime"></label>
+      <label class="check"><input type="checkbox" id="obNoTime"> I don't know my birth time</label>
+      <p class="hint">Your birth time sets your rising sign. Without it, we read everything else.</p>
+      <button class="primary" type="submit">Next</button>
+    </form>
+    <form class="ob-step" data-step="2" hidden>
+      <h2>Where were you born?</h2>
+      <label class="field"><span>City</span><input type="text" id="obCity" list="cityList" autocomplete="off" placeholder="Start typing a city" required></label>
+      <datalist id="cityList"></datalist>
+      <p class="hint" id="cityHint">The prototype knows about 110 cities. The full app will know every town.</p>
+      <button class="primary" type="submit">Next</button>
+    </form>
+    <form class="ob-step" data-step="3" hidden>
+      <h2>What should the sky call you?</h2>
+      <label class="field"><span>Name you go by</span><input type="text" id="obName" autocomplete="given-name" placeholder="Optional"></label>
+      <fieldset class="field">
+        <legend>Pronouns</legend>
+        <div class="chips" id="obPronouns">
+          <button type="button" class="chip" data-v="she/her">she/her</button>
+          <button type="button" class="chip" data-v="he/him">he/him</button>
+          <button type="button" class="chip" data-v="they/them">they/them</button>
+          <button type="button" class="chip" data-v="">skip</button>
+        </div>
+      </fieldset>
+      <button class="primary" type="submit">Show me my sky</button>
+    </form>
+    <div class="ob-step reveal" data-step="4" hidden>
+      <p class="reveal-kicker">The sky you arrived under</p>
+      <h2 id="revealText"></h2>
+      <p class="ob-sub" id="revealSub"></p>
+      <button class="primary" data-finish>See today's sky</button>
+    </div>
+  </section>
+
+  <!-- Bottom sheet, reused for check-in, reading, journal, menu -->
+  <div class="scrim" id="scrim" hidden></div>
+  <section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden>
+    <div class="grabber" aria-hidden="true"></div>
+    <button class="sheet-close icon-btn" id="sheetClose" aria-label="Close">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <div class="sheet-body" id="sheetBody"></div>
+  </section>
+
+  <!-- Breathing ritual -->
+  <section class="ritual" id="ritual" hidden aria-live="polite">
+    <div class="breath-orb" id="breathOrb"></div>
+    <p class="breath-word" id="breathWord">Breathe in</p>
+    <p class="breath-sub">Paced to the slow turn of the sky. Thirty seconds.</p>
+    <button class="ghost" id="ritualDone">I'm done</button>
+  </section>
+
+  <div class="toast" id="toast" role="status" hidden></div>
+
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>
