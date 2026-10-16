@@ -138,20 +138,6 @@ function countOnce(e) {
   try { fetch("/api/hit", { method: "POST", body: JSON.stringify({ e }), keepalive: true, headers: { "Content-Type": "application/json" } }).catch(() => { }); } catch { }
 }
 
-// ---------- Icons ----------
-const ICONS = {
-  clear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/></svg>',
-  golden: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="13" r="5"/><path d="M18.5 3.5v4M16.5 5.5h4M3 13h1.5M11 4.5V6M5 7l1 1"/></svg>',
-  gusty: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 9h11a3 3 0 1 0-3-3M3 13h15a3 3 0 1 1-3 3M3 17h7"/></svg>',
-  electric: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M13 2 5 13.5h6L10 22l8-11.5h-6z"/></svg>',
-  misty: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 8h16M2 12h14M6 16h16M4 20h10"/></svg>',
-};
-function dialSvg(v) {
-  const r = 18, cx = 22, cy = 23, a0 = Math.PI, a1 = Math.PI + Math.PI * Math.max(0.04, Math.min(1, v));
-  const p = a => `${cx + r * Math.cos(a)} ${cy + r * Math.sin(a)}`;
-  return `<svg viewBox="0 0 44 26" aria-hidden="true"><path d="M${p(a0)} A${r} ${r} 0 0 1 ${p(0)}" fill="none" stroke="var(--line)" stroke-width="4" stroke-linecap="round"/><path d="M${p(a0)} A${r} ${r} 0 0 1 ${p(a1)}" fill="none" stroke="var(--accent)" stroke-width="4" stroke-linecap="round"/></svg>`;
-}
-
 // ---------- Home ----------
 function renderHome() {
   if (!profile || !natal) return;
@@ -551,7 +537,10 @@ function setActive(i) {
   if (!reading || i === reading.index || i < 0 || i >= reading.deck.length) return;
   reading.index = i;
   const els = document.querySelectorAll("#cards .card");
-  els.forEach((el, j) => el.classList.toggle("active", j === i));
+  els.forEach((el, j) => { el.classList.toggle("active", j === i); el.inert = j !== i; el.setAttribute("aria-hidden", j !== i); });
+  // Screen readers land on the new card's heading.
+  const h = els[i].querySelector("h2, blockquote");
+  if (h) { h.tabIndex = -1; setTimeout(() => h.focus({ preventScroll: true }), 50); }
   document.querySelectorAll("#bars span").forEach((b, j) => (b.className = j < i ? "done" : j === i ? "on" : ""));
   $("#nextHint").hidden = i === 0 || i === reading.deck.length - 1;
   placeScrim(els[i]);
@@ -861,6 +850,7 @@ function openMenu() {
       <button class="menu-item" id="mTip">${ic.heart}<span>Chip in<small>Æther is free, with no ads and no paywall</small></span></button>
       <button class="menu-item" id="mEdit">${ic.edit}<span>Edit birth details</span></button>
       <button class="menu-item" id="mErase">${ic.trash}<span>Erase everything on this phone</span></button>
+      <a class="menu-item" href="mailto:aetherapp@icloud.com?subject=%C3%86ther%20feedback">${ic.share.replace(/<path[\s\S]*$/, '<path d="M4 6h16v12H4z"/><path d="M4 7l8 6 8-6"/></svg>')}<span>Send feedback<small>Ideas, bugs, kind words: we read everything</small></span></a>
       <a class="menu-item" href="/privacy.html">${ic.pin.replace('<path d="M12 21s-6-5.3-6-11a6 6 0 0 1 12 0c0 5.7-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/>', '<path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"/>')}<span>Privacy Policy</span></a>
       <a class="menu-item" href="/terms.html">${ic.edit.replace('<path d="M4 20h4L19 9l-4-4L4 16z"/>', '<path d="M7 3h8l4 4v14H7z"/><path d="M10 12h6M10 16h6"/>')}<span>Terms of Use</span></a>
     </div>
@@ -946,9 +936,18 @@ function playIntro() {
 (document.fonts && document.fonts.ready ? Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 600))]) : Promise.resolve())
   .then(() => requestAnimationFrame(playIntro));
 
-if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("/sw.js").catch(() => { });
-
-// Testing hooks for previews: ?phase=dusk
-const qp = new URLSearchParams(location.search).get("phase");
-if (qp && ["dawn", "day", "dusk", "night"].includes(qp)) { phaseOverride = qp; applyPhase(); }
-window.__aether = { openCheckin, openJournal, openMenu, openInstall, writeReading: () => writeReading, shareImage: async () => { const b = await renderShareImage(reading.r, reading.deck); return await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(b); }); } };
+// Works offline; when a new version lands, offer a gentle refresh instead of changing things mid-reading.
+if ("serviceWorker" in navigator && location.protocol === "https:") {
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register("/sw.js").then(reg => {
+    setInterval(() => reg.update().catch(() => { }), 60 * 6e4);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) reg.update().catch(() => { }); });
+  }).catch(() => { });
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!hadController) return;
+    const t = $("#toast");
+    toast("A new version of Æther is ready. Tap here to refresh.", 15000);
+    t.style.pointerEvents = "auto"; t.style.cursor = "pointer";
+    t.onclick = () => location.reload();
+  });
+}

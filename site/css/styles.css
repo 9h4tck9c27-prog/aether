@@ -17,7 +17,7 @@
 
 body[data-phase="night"] {
   --bg-top: #120a24; --bg-bottom: #2b1b4c; --glow: rgba(184, 164, 255, .26);
-  --ink: #F7F2FB; --ink-soft: rgba(247, 242, 251, .7); --ink-faint: rgba(247, 242, 251, .45);
+  --ink: #F7F2FB; --ink-soft: rgba(247, 242, 251, .76); --ink-faint: rgba(247, 242, 251, .58);
   --surface: rgba(255, 255, 255, .07); --surface-strong: rgba(30, 19, 52, .9); --line: rgba(247, 242, 251, .14);
   --accent: #B8A4FF; --accent-ink: #1C1230; --heavy: #7d8cc4; --golden: #FFB89A;
 }
@@ -29,13 +29,13 @@ body[data-phase="dusk"] {
 }
 body[data-phase="dawn"] {
   --bg-top: #f6eefb; --bg-bottom: #ffcfba; --glow: rgba(255, 184, 154, .45);
-  --ink: #1C1230; --ink-soft: rgba(28, 18, 48, .7); --ink-faint: rgba(28, 18, 48, .48);
+  --ink: #1C1230; --ink-soft: rgba(28, 18, 48, .76); --ink-faint: rgba(28, 18, 48, .6);
   --surface: rgba(28, 18, 48, .06); --surface-strong: rgba(255, 249, 252, .94); --line: rgba(28, 18, 48, .13);
   --accent: #6A52D1; --accent-ink: #ffffff; --heavy: #6070b0; --golden: #e5835f;
 }
 body[data-phase="day"] {
   --bg-top: #f7f2fb; --bg-bottom: #e4dcff; --glow: rgba(158, 230, 212, .45);
-  --ink: #1C1230; --ink-soft: rgba(28, 18, 48, .7); --ink-faint: rgba(28, 18, 48, .48);
+  --ink: #1C1230; --ink-soft: rgba(28, 18, 48, .76); --ink-faint: rgba(28, 18, 48, .6);
   --surface: rgba(28, 18, 48, .06); --surface-strong: rgba(255, 252, 255, .95); --line: rgba(28, 18, 48, .13);
   --accent: #6A52D1; --accent-ink: #ffffff; --heavy: #6070b0; --golden: #e5835f;
 }
@@ -567,3 +567,9 @@ body.introing .legal-rail, body.onboarding .legal-rail { opacity: 0; pointer-eve
 .care-help .care-btn { display: flex; justify-content: center; align-items: center; text-decoration: none; width: 100%; min-height: 48px; }
 .care-help small { display: block; margin-top: 8px; font-size: 12.5px; opacity: .75; text-align: center; }
 .care-skip { font-size: 13px; opacity: .65; margin: 0; }
+
+/* Reduced motion: no pulsing, sparkles or long fades */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+.card [tabindex="-1"]:focus { outline: none; }

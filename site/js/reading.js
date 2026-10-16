@@ -26,19 +26,19 @@ function timing(s, natal, now) {
   return { days: o0 < 0.3 ? 0 : null, building: false };
 }
 
-function transitCard(s, r, natal) {
+function transitCard(s, r, natal, seed) {
   const h = String(Math.sign(s.asp.harmony));
   const n = PLAIN_NATAL[s.n];
   const t = timing(s, natal, r.now);
-  const headline = TRANSIT_HEADLINES[s.t][h].replace("{n}", n);
-  const plain = TRANSIT_PLAIN[h].replace("{P}", cap(PLAIN_PLANET[s.t])).replace("{is}", PLAIN_SINGULAR.has(s.t) ? "is" : "are").replace("{n}", n);
+  const headline = pickBy(TRANSIT_HEADLINES[s.t][h], seed).replace("{n}", n);
+  const plain = pickBy(TRANSIT_PLAIN[h], seed + 1).replace("{P}", cap(PLAIN_PLANET[s.t])).replace("{is}", PLAIN_SINGULAR.has(s.t) ? "is" : "are").replace("{n}", n);
   const point = s.n === "Ascendant" ? "your rising sign" : `your natal ${s.n}`;
   return {
     type: "transit",
     kicker: s.n === "Ascendant" ? "How you come across" : `About ${n}`,
     title: headline,
     pill: timingPill(t.days, t.building),
-    lead: `${plain} ${FEEL_BRIDGE[r.bucket][h]}`,
+    lead: `${plain} ${pickBy(FEEL_BRIDGE[r.bucket][h], seed + 2)}`,
     tech: {
       glyphs: [glyph(s.t), ASPECT_GLYPH[s.asp.name], glyph(s.n)],
       name: `${cap(proper(s.t))} ${ASPECT_WORD[s.asp.name]} ${point}`,
@@ -106,7 +106,8 @@ export function buildDeck(r, natal, kp, { weather = null, care = false } = {}) {
       : null,
     focus: { wide: true, natalGlow: true },
   }];
-  for (const s of r.ranked.slice(0, 2)) cards.push(transitCard(s, r, natal));
+  const day = Math.floor(r.now.getTime() / 864e5);
+  r.ranked.slice(0, 2).forEach((s, i) => cards.push(transitCard(s, r, natal, day + i * 7)));
   cards.push(moonCard(r));
   // Only show "people near you" when there are enough real check-ins to count.
   if (r.crowd && r.crowd.count >= MIN_CROWD) cards.push(togetherCard(r, kp));

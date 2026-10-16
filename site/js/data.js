@@ -290,32 +290,6 @@ export const THEME_LINES = {
 // Twelve steps from heavy to golden. Index = Math.floor(feel * 12).
 export const MOOD_WORDS = ["Heavy", "Drained", "Low", "Tender", "Foggy", "Unsettled", "Mixed", "Steady", "Hopeful", "Bright", "Glowing", "Golden"];
 
-export const FEELING_CHIPS = [
-  "anxious", "tired", "lonely", "restless", "numb", "angry", "overwhelmed", "grieving",
-  "tender", "strange", "nostalgic", "calm", "hopeful", "grateful", "loved", "inspired", "playful", "proud",
-];
-
-export const CHIP_LINES = {
-  anxious: "Anxiety is the body bracing for weather that hasn't arrived yet. Most of it never does.",
-  tired: "Tiredness is information, not failure. The sky turns whether or not you push.",
-  lonely: "Loneliness is easier to carry knowing others are under this same sky tonight, feeling it too.",
-  restless: "Restlessness is energy without a door yet. Give it a small one: a walk, a song, a list.",
-  numb: "Numbness is often the mind turning the volume down to protect you. It lifts in its own time.",
-  angry: "Anger points at something that matters to you. Let it inform you before you let it act.",
-  overwhelmed: "When everything is loud, choose one small thing. The rest can wait for the Moon to move.",
-  grieving: "Grief is love with nowhere to go. The old astrologers never rushed a Saturn season, and neither should you.",
-  tender: "Tenderness is a kind of openness. Protect it, but don't close it.",
-  strange: "Strange days are often hinge days: something is turning that you can't name yet.",
-  nostalgic: "Nostalgia is the past visiting. Let it sit with you, then send it home.",
-  calm: "Calm is rarer than it should be. Notice it; it's worth remembering.",
-  hopeful: "Hope is a forecast you're allowed to make for yourself.",
-  grateful: "Gratitude widens the frame, which is exactly what the sky does too.",
-  loved: "Being loved is a kind of weather. Let it warm you all the way through.",
-  inspired: "Inspiration is a gust; catch it on paper before it moves on.",
-  playful: "Play is how the spirit stretches. Let today be a little ridiculous.",
-  proud: "Pride in your own work is earned. Let it land.",
-};
-
 export const TRANSIT_TEXT = {
   Sun: "The Sun lights up whatever it touches, bringing attention, energy and a little spotlight.",
   Moon: "The Moon moves through your whole chart every month, stirring moods and the body as she passes.",
