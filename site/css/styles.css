@@ -294,17 +294,23 @@ body.onboarding .pill-hint { display: none !important; }
 .chips.small .chip { padding: 7px 12px; font-size: 14px; }
 .small-btn { padding: 8px 14px; font-size: 14px; margin-top: 8px; }
 
-/* ---------- Reading stage ---------- */
+/* ---------- Reading stage: text sits over the sphere, everything on one screen ---------- */
 .stage {
   position: fixed; inset: 0; z-index: 45; height: 100vh; height: 100svh; overflow: hidden;
-  background:
-    radial-gradient(70% 40% at 50% 28%, var(--glow), transparent 70%),
-    linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+  --scrim: 45svh;
   animation: fade .45s both;
 }
+/* Soft backdrop that starts just above the text, so the sphere shows above and faintly behind it. */
+.stage::before {
+  content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background: linear-gradient(180deg, transparent 0, transparent var(--scrim), color-mix(in srgb, var(--bg-bottom) 78%, transparent) calc(var(--scrim) + 120px), color-mix(in srgb, var(--bg-bottom) 92%, transparent) 100%);
+  transition: --scrim .6s;
+}
+@property --scrim { syntax: "<length>"; inherits: true; initial-value: 0px; }
+body.reading-mode .topbar, body.reading-mode .forecast, body.reading-mode .home-foot, body.reading-mode .legal-rail { visibility: hidden; }
 body.reading-mode .sphere-wrap {
-  position: fixed; z-index: 46; left: 0; right: 0; margin: 0;
-  top: calc(var(--safe-top) + 44px); height: 40svh; max-height: none;
+  position: fixed; left: 0; right: 0; margin: 0;
+  top: calc(var(--safe-top) + 40px); height: 50svh; max-height: none;
 }
 body.reading-mode .pill-hint { display: none !important; }
 .stage-top {
@@ -317,12 +323,9 @@ body.reading-mode .pill-hint { display: none !important; }
 .stage-close { width: 38px; height: 38px; flex: 0 0 auto; }
 .stage-close svg { width: 16px; height: 16px; }
 
-.consult, .cards {
-  position: absolute; z-index: 47; left: 0; right: 0; bottom: 0;
-  top: calc(var(--safe-top) + 44px + 40svh);
-}
+.consult { position: absolute; z-index: 47; left: 0; right: 0; bottom: 0; top: 52svh; }
 .consult { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 0 28px calc(var(--safe-bottom) + 40px); text-align: center; cursor: pointer; }
-.consult-step { font-family: var(--serif); font-variation-settings: "SOFT" 100, "opsz" 48; font-size: 23px; line-height: 1.3; margin: 0; min-height: 60px; }
+.consult-step { font-family: var(--serif); font-variation-settings: "SOFT" 100, "opsz" 48; font-size: 23px; line-height: 1.3; margin: 0; min-height: 60px; text-shadow: 0 1px 18px var(--bg-top); }
 .consult-step.in { animation: stepIn .55s var(--ease) both; }
 @keyframes stepIn { from { opacity: 0; filter: blur(6px); transform: translateY(8px); } to { opacity: 1; filter: none; transform: none; } }
 .consult-track { width: min(240px, 60vw); height: 3px; border-radius: 2px; background: var(--line); overflow: hidden; }
@@ -330,29 +333,57 @@ body.reading-mode .pill-hint { display: none !important; }
 .consult-skip { font-size: 12.5px; color: var(--ink-faint); margin: 6px 0 0; }
 
 .cards {
+  position: absolute; z-index: 47; inset: 0;
   display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory;
   scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain;
 }
 .cards::-webkit-scrollbar { display: none; }
 .card { flex: 0 0 100%; height: 100%; scroll-snap-align: start; scroll-snap-stop: always; position: relative; }
 .card-inner {
-  height: 100%; overflow-y: auto; overscroll-behavior: contain;
-  padding: 8px 26px calc(var(--safe-bottom) + 24px); max-width: 560px; margin: 0 auto;
-  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 14px, #000 calc(100% - 18px), transparent 100%);
-          mask-image: linear-gradient(180deg, transparent 0, #000 14px, #000 calc(100% - 18px), transparent 100%);
+  height: 100%; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end;
+  padding: calc(var(--safe-top) + 26svh) 26px calc(var(--safe-bottom) + 86px); max-width: 560px; margin: 0 auto;
 }
+.card-close .card-inner, .card-open .card-inner { padding-bottom: calc(var(--safe-bottom) + 28px); }
+.card-content { text-shadow: 0 1px 14px color-mix(in srgb, var(--bg-bottom) 70%, transparent); }
+.aspect-line { font-size: 14.5px; line-height: 1.5; color: var(--ink); margin: 0 0 12px; padding: 9px 13px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); text-shadow: none; }
+
+/* Next-card arrow on every card after the first */
+.next-hint {
+  position: absolute; z-index: 49; right: 20px; bottom: calc(var(--safe-bottom) + 20px);
+  width: 54px; height: 54px; border-radius: 50%; border: 1px solid var(--line); cursor: pointer;
+  background: var(--surface-strong); color: var(--ink); display: grid; place-items: center;
+  box-shadow: 0 10px 26px -10px var(--accent);
+  animation: nextNudge 1.8s ease-in-out infinite;
+}
+.next-hint svg { width: 24px; height: 24px; stroke: currentColor; }
+.next-hint::after { content: ""; position: absolute; inset: -1px; border-radius: 50%; border: 2px solid var(--accent); opacity: 0; animation: nextRing 1.8s ease-out infinite; }
+@keyframes nextNudge { 0%, 100% { transform: translateX(0); } 40% { transform: translateX(6px); } 60% { transform: translateX(-2px); } }
+@keyframes nextRing { 0% { opacity: .7; transform: scale(1); } 100% { opacity: 0; transform: scale(1.45); } }
+
+/* The big swipe prompt on the first card */
+.swipe-big {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%;
+  margin: 10px 0 0; padding: 18px 22px; border-radius: 24px; cursor: pointer; text-align: left;
+  font: inherit; font-family: var(--serif); font-variation-settings: "SOFT" 100, "opsz" 48; font-size: 23px; line-height: 1.15;
+  color: var(--accent-ink); background: var(--accent); border: 0; text-shadow: none;
+  box-shadow: 0 16px 40px -14px var(--accent);
+}
+.chevs { display: flex; font-family: var(--sans); font-size: 34px; line-height: 1; letter-spacing: -6px; }
+.chevs i { font-style: normal; opacity: .25; animation: chevWave 1.4s ease-in-out infinite; }
+.chevs i:nth-child(2) { animation-delay: .18s; }
+.chevs i:nth-child(3) { animation-delay: .36s; }
+@keyframes chevWave { 0%, 100% { opacity: .25; transform: translateX(0); } 40% { opacity: 1; transform: translateX(5px); } }
+@media (prefers-reduced-motion: reduce) { .next-hint, .next-hint::after, .chevs i { animation: none !important; } .chevs i { opacity: 1; } }
 .card .rv { opacity: 0; transform: translateY(16px); filter: blur(5px); transition: opacity .7s var(--ease), transform .7s var(--ease), filter .7s var(--ease); transition-delay: calc(var(--d, 0) * 110ms + 250ms); }
 .card.active .rv { opacity: 1; transform: none; filter: none; }
 .kicker { font-size: 13px; color: var(--ink-faint); margin: 10px 0 8px; }
 .card-title { font-family: var(--serif); font-weight: 400; font-variation-settings: "SOFT" 100, "opsz" 72; font-size: clamp(25px, 7vw, 32px); line-height: 1.15; margin: 0 0 14px; letter-spacing: -.01em; text-wrap: balance; }
 .card-title.big { font-size: clamp(30px, 8.6vw, 40px); }
-.card .lead { font-family: var(--serif); font-variation-settings: "SOFT" 100, "opsz" 30; font-size: 19px; line-height: 1.45; margin: 0 0 14px; text-wrap: pretty; }
-.card .body { font-size: 15.5px; line-height: 1.6; color: var(--ink-soft); margin: 0 0 12px; text-wrap: pretty; }
+.card .lead { font-family: var(--serif); font-variation-settings: "SOFT" 100, "opsz" 30; font-size: 19px; line-height: 1.42; margin: 0 0 12px; text-wrap: pretty; }
+.card .body { font-size: 15px; line-height: 1.55; color: var(--ink-soft); margin: 0 0 10px; text-wrap: pretty; }
 .card .quote { font-family: var(--serif); font-style: italic; font-size: 18px; color: var(--ink-soft); border-left: 2px solid var(--accent); padding-left: 12px; margin: 0 0 16px; }
 .card .condition { margin: 4px 0 18px; }
 .timing { font-size: 13.5px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 10px 14px; margin: 6px 0 0; }
-.swipe-hint { font-size: 14px; color: var(--ink-faint); margin: 8px 0 0; }
-.swipe-hint span { display: inline-block; animation: nudge 1.6s ease-in-out infinite; }
 @keyframes nudge { 50% { transform: translateX(6px); } }
 .glyphs { display: flex; align-items: center; gap: 16px; font-size: 40px; line-height: 1; margin: 6px 0 14px; font-family: "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols", serif; }
 .glyphs .asp { font-size: 26px; color: var(--accent); }
@@ -379,8 +410,7 @@ body[data-phase="day"] .moon-lit, body[data-phase="dawn"] .moon-lit { fill: #fff
 .card-actions .ghost { padding: 13px 12px; }
 .card .tip-line { margin-top: 16px; }
 @media (max-height: 720px) {
-  body.reading-mode .sphere-wrap { height: 34svh; }
-  .consult, .cards { top: calc(var(--safe-top) + 44px + 34svh); }
+  .card-inner { padding-top: calc(var(--safe-top) + 20svh); }
   .card-title.big { font-size: 28px; }
   .crowd-big strong { font-size: 48px; }
 }
@@ -473,3 +503,16 @@ body[data-phase="day"] .sparkles i, body[data-phase="dawn"] .sparkles i { backgr
 .tip-arrow { flex: 0 0 auto; font-size: 26px; line-height: 1; color: rgba(42, 18, 48, .55); margin-right: 2px; }
 .card-tip { margin-top: 16px; }
 @media (prefers-reduced-motion: reduce) { .tip-btn, .tip-heart svg { animation: none !important; } }
+
+/* Legal links: a slim vertical rail on the right edge, beside the sphere */
+.legal-rail {
+  position: absolute; right: 2px; top: 50%; transform: translateY(-50%); z-index: 3; pointer-events: auto;
+  writing-mode: vertical-rl; display: flex; align-items: center; gap: 8px;
+  font-size: 11.5px; letter-spacing: .04em; color: var(--ink-faint);
+}
+.legal-rail a { color: var(--ink-faint); text-decoration: none; padding: 10px 6px; }
+.legal-rail a:active { color: var(--ink); }
+body.introing .legal-rail, body.onboarding .legal-rail { opacity: 0; pointer-events: none; }
+.legal-rail { transition: opacity .7s var(--ease) .3s; }
+.ob-legal { font-size: 12.5px; color: var(--ink-faint); text-align: center; margin: 14px 0 0; line-height: 1.5; }
+.ob-legal a { color: var(--ink-soft); text-underline-offset: 2px; }

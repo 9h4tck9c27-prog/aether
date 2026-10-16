@@ -36,7 +36,8 @@ function transitCard(s, r, natal) {
     title: `${s.t === "Sun" || s.t === "Moon" ? "The " + s.t : s.t} ${s.asp.name === "conjunction" ? "meets" : s.asp.name === "opposition" ? "opposite" : s.asp.name === "square" ? "square" : s.asp.name === "trine" ? "trine" : "sextile"} ${pointName(s.n)}`,
     glyphs: [glyph(s.t), ASPECT_GLYPH[s.asp.name], glyph(s.n)],
     lead: FEEL_LINK[r.bucket][harmony],
-    body: [ASPECT_TEXT[s.asp.name], TRANSIT_TEXT[s.t], NATAL_TEXT[s.n]],
+    body: [TRANSIT_TEXT[s.t], NATAL_TEXT[s.n]],
+    aspectLine: ASPECT_TEXT[s.asp.name],
     timing: t.text,
     focus: { sky: [s.t], natal: [s.n], link: true, zoom: 0.8, tone: s.asp.harmony },
   };
@@ -53,9 +54,8 @@ function moonCard(r) {
     title: `The Moon in ${nak.name}`,
     lead: `${nak.name} is ${nak.gloss}, one of the 27 lunar mansions the Moon walks through each month.`,
     body: [
-      `Its ruling deity is ${deity}, and its symbol is ${symbol}.`,
-      `In the Western zodiac the Moon is in ${sig.moonSign}. It is the ${sig.phase.tithi.name} tithi, the ${ordinal(sig.phase.tithi.number)} lunar day of the ${sig.phase.tithi.paksha}.`,
-      `She moves into a new sign in about ${sig.moonLeft} hours, and the mood moves with her.`,
+      `Its ruling deity is ${deity}, and its symbol is ${symbol}. Today is the ${sig.phase.tithi.name} tithi, the ${ordinal(sig.phase.tithi.number)} lunar day of the ${sig.phase.tithi.paksha}.`,
+      `In the Western zodiac she is in ${sig.moonSign}, and moves into a new sign in about ${sig.moonLeft === 1 ? "an hour" : sig.moonLeft + " hours"}. The mood moves with her.`,
     ],
     phase: sig.phase,
     focus: { sky: ["Moon"], arc: [sidStart + ay, sidStart + span + ay], zoom: 0.85 },

@@ -58,6 +58,7 @@
     <section class="sphere-wrap" aria-label="Today's sky, drawn as a celestial sphere">
       <canvas id="sky"></canvas>
       <button class="pill-hint" id="tiltBtn" hidden>Let the sky follow your phone</button>
+      <nav class="legal-rail" aria-label="Legal"><a href="/privacy.html">Privacy</a><span aria-hidden="true">·</span><a href="/terms.html">Terms</a></nav>
     </section>
 
     <section class="forecast" id="forecast" aria-live="polite">
@@ -83,6 +84,7 @@
       <h2>Your daily astrological weather.</h2>
       <p class="ob-sub">Four thousand years of sky-watching, from Babylon to Varanasi, read against your own chart, the real weather above you, and everyone else under the same sky.</p>
       <button class="primary" data-next>Begin</button>
+      <p class="ob-legal">By continuing you agree to the <a href="/terms.html">Terms</a> and <a href="/privacy.html">Privacy Policy</a>.</p>
     </div>
     <form class="ob-step" data-step="1" hidden>
       <h2>When did you arrive?</h2>
@@ -148,6 +150,7 @@
       <p class="consult-skip">Tap to skip</p>
     </div>
     <div class="cards" id="cards" hidden></div>
+    <button class="next-hint" id="nextHint" aria-label="Next card" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   </section>
 
   <!-- Breathing ritual -->

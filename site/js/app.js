@@ -278,7 +278,7 @@ const CONSULT_STEP_MS = 950;
 
 function startReading(r, entry, { consult = true } = {}) {
   document.body.classList.add("reading-mode");
-  sky.clip = true;
+  sky.clip = false;
   $("#stage").hidden = false;
   $("#cards").hidden = true; $("#cards").innerHTML = ""; $("#bars").innerHTML = "";
   sky.setSky(r.sig.sky);
@@ -343,12 +343,13 @@ function renderCard(c, i, r) {
       + (c.quote ? rv(`<p class="quote">${esc(c.quote)}</p>`, d++) : "")
       + (c.chipLine ? rv(`<p class="lead">${esc(c.chipLine)}</p>`, d++) : "")
       + rv(`<p class="condition"><span class="cond-icon">${ICONS[c.cond]}</span>${esc(CONDITIONS[c.cond].label)}</p>`, d++)
-      + rv(`<p class="swipe-hint">Swipe for your sky <span aria-hidden="true">›</span></p>`, d++);
+      + rv(`<button class="swipe-big" type="button" data-act="next"><span>Swipe to see your sky</span><span class="chevs" aria-hidden="true"><i>›</i><i>›</i><i>›</i></span></button>`, d++);
   } else if (c.type === "transit") {
     inner = kicker
       + rv(`<div class="glyphs" aria-hidden="true"><span>${c.glyphs[0]}</span><span class="asp">${c.glyphs[1]}</span><span>${c.glyphs[2]}</span></div>`, d++)
       + rv(`<h2 class="card-title">${esc(c.title)}</h2>`, d++)
       + rv(`<p class="lead">${esc(c.lead)}</p>`, d++)
+      + rv(`<p class="aspect-line">${esc(c.aspectLine)}</p>`, d++)
       + c.body.map(b => rv(`<p class="body">${esc(b)}</p>`, d++)).join("")
       + rv(`<p class="timing">${esc(c.timing)}</p>`, d++);
   } else if (c.type === "moon") {
@@ -377,7 +378,7 @@ function renderCard(c, i, r) {
       + rv(`<div class="card-actions">${main}<div class="row"><button class="ghost" data-act="share">Share this sky</button><button class="ghost" data-act="${c.bucket === "mixed" ? "journal" : "done"}">${c.bucket === "mixed" ? "Journal" : "Done"}</button></div><p class="bottled" data-bottled hidden>A new star in your journal.</p></div>`, d++)
       + (c.bucket === "golden" ? rv(`<div class="card-tip"><button class="tip-btn" type="button"><span class="tip-heart" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20.5s-7.5-4.6-7.5-10.3A4.3 4.3 0 0 1 12 7.4a4.3 4.3 0 0 1 7.5 2.8c0 5.7-7.5 10.3-7.5 10.3z"/></svg></span><span class="tip-text"><b>Chip in to keep Æther free</b><small>No ads, no paywall. Tips keep the sky turning.</small></span><span class="tip-arrow" aria-hidden="true">›</span></button></div>`, d++) : "");
   }
-  return `<article class="card card-${c.type}" aria-roledescription="card" aria-label="Card ${i + 1} of ${reading.deck.length}"><div class="card-inner">${inner}</div></article>`;
+  return `<article class="card card-${c.type}" aria-roledescription="card" aria-label="Card ${i + 1} of ${reading.deck.length}"><div class="card-inner"><div class="card-content">${inner}</div></div></article>`;
 }
 
 function showDeck() {
@@ -388,6 +389,7 @@ function showDeck() {
   cards.hidden = false;
   cards.scrollLeft = 0;
   reading.index = -1;
+  fitCards();
   setActive(0);
   cards.onscroll = () => { clearTimeout(cards._t); cards._t = setTimeout(() => setActive(Math.round(cards.scrollLeft / cards.clientWidth)), 50); };
   cards.onclick = e => {
@@ -397,6 +399,25 @@ function showDeck() {
   };
   cards.querySelectorAll("[data-act]").forEach(b => (b.onclick = () => cardAction(b)));
 }
+
+// Every card fits on one screen: if its text is taller than the space, scale it down a little.
+function fitCards() {
+  document.querySelectorAll("#cards .card").forEach(card => {
+    const inner = card.querySelector(".card-inner"), content = card.querySelector(".card-content");
+    content.style.zoom = 1;
+    const cs = getComputedStyle(inner);
+    const avail = inner.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    const h = content.offsetHeight;
+    content.style.zoom = h > avail ? Math.max(0.7, avail / h).toFixed(3) : 1;
+  });
+}
+addEventListener("resize", () => { if (reading && reading.consultDone !== false) { fitCards(); const el = document.querySelectorAll("#cards .card")[reading.index]; if (el) placeScrim(el); } });
+// The soft backdrop behind the text starts just above where the text begins, so the sphere stays visible above it.
+function placeScrim(card) {
+  const top = card.querySelector(".card-content").getBoundingClientRect().top;
+  $("#stage").style.setProperty("--scrim", `${Math.max(0, top - 120)}px`);
+}
+$("#nextHint").onclick = () => goCard(1);
 
 function goCard(dir) {
   const cards = $("#cards");
@@ -409,6 +430,8 @@ function setActive(i) {
   reading.index = i;
   const els = document.querySelectorAll("#cards .card");
   els.forEach((el, j) => { el.classList.toggle("active", j === i); if (j === i) el.querySelector(".card-inner").scrollTop = 0; });
+  $("#nextHint").hidden = i === 0 || i === reading.deck.length - 1;
+  placeScrim(els[i]);
   document.querySelectorAll("#bars span").forEach((b, j) => (b.className = j < i ? "done" : j === i ? "on" : ""));
   sky.focus(reading.deck[i].focus);
   const num = els[i].querySelector("[data-count]");
@@ -428,6 +451,7 @@ function countUp(el) {
 
 function cardAction(b) {
   const act = b.dataset.act;
+  if (act === "next") return goCard(1);
   if (act === "share") return shareCard(reading.r);
   if (act === "breathe") return startRitual();
   if (act === "journal") { endReading(); return openJournal(); }
@@ -673,6 +697,8 @@ function openMenu() {
       <button class="menu-item" id="mTip">${ic.heart}<span>Chip in<small>Æther is free, with no ads and no paywall</small></span></button>
       <button class="menu-item" id="mEdit">${ic.edit}<span>Edit birth details</span></button>
       <button class="menu-item" id="mErase">${ic.trash}<span>Erase everything on this phone</span></button>
+      <a class="menu-item" href="/privacy.html">${ic.pin.replace('<path d="M12 21s-6-5.3-6-11a6 6 0 0 1 12 0c0 5.7-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/>', '<path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"/>')}<span>Privacy Policy</span></a>
+      <a class="menu-item" href="/terms.html">${ic.edit.replace('<path d="M4 20h4L19 9l-4-4L4 16z"/>', '<path d="M7 3h8l4 4v14H7z"/><path d="M10 12h6M10 16h6"/>')}<span>Terms of Use</span></a>
     </div>
     <p class="credits">Planet positions are calculated on your phone with Astronomy Engine (open source). Space weather comes from NOAA's Space Weather Prediction Center. Lines from the traditions are paraphrased in our own words. Æther is for reflection, not prediction.</p>
   `);

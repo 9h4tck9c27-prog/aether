@@ -280,10 +280,10 @@ export function writeReading({ feel, chips, text, natal, profile, kp, now = new 
 
   const echo = echoFor(ranked[0], seed);
   const closing = bucket === "heavy"
-    ? `Nothing in the sky stays put. The Moon moves into a new sign in about ${sig.moonLeft} hours, and the mood moves with her.`
+    ? `Nothing in the sky stays put. The Moon moves into a new sign in about ${sig.moonLeft === 1 ? "an hour" : sig.moonLeft + " hours"}, and the mood moves with her.`
     : bucket === "golden"
       ? "Days like this are worth keeping. Bottle it, and it will glow in your journal."
-      : `Notice what shifts when the Moon moves on, in about ${sig.moonLeft} hours.`;
+      : `Notice what shifts when the Moon moves on, in about ${sig.moonLeft === 1 ? "an hour" : sig.moonLeft + " hours"}.`;
 
   return { bucket, cond, headline, quote: (text || "").trim(), why, themeLine, moonLine, whoElse, crowd, echo, closing, chips, sig, ranked, themes, now };
 }
