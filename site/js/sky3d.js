@@ -85,6 +85,9 @@ export class Sky {
     this.spinTarget = null;
     this.pulse = 0;
     this.baseDist = BASE_DIST;
+    this.vw = 1; this.vh = 1;
+    this.slot = null; this.slotCur = null;   // where on screen the sphere sits
+    this.introStart = null; this.introDur = 3000;
     this.camGoal = { look: new THREE.Vector3(), pos: new THREE.Vector3(0, 0, BASE_DIST) };
     this.camLook = new THREE.Vector3();
     this.focusSpec = null;
@@ -384,13 +387,29 @@ export class Sky {
     c.addEventListener("pointerup", end); c.addEventListener("pointercancel", end);
   }
 
+  // The canvas covers the whole screen; the sphere is drawn inside a "slot" rectangle.
   resize() {
     const r = this.canvas.getBoundingClientRect();
     const w = Math.max(1, r.width), h = Math.max(1, r.height);
     this.renderer.setSize(w, h, false);
+    this.vw = w; this.vh = h;
     this.camera.aspect = w / h;
-    this.baseDist = Math.max(7.6, 7.6 * 0.95 / Math.max(0.3, w / h));
     this.camera.updateProjectionMatrix();
+    if (!this.slot) this.slot = { x: 0, y: 0, w, h };
+    if (!this.slotCur) this.slotCur = { ...this.slot };
+  }
+
+  setSlot(rect, instant = false) {
+    this.slot = { x: rect.left ?? rect.x, y: rect.top ?? rect.y, w: Math.max(1, rect.width ?? rect.w), h: Math.max(1, rect.height ?? rect.h) };
+    if (instant || !this.slotCur) this.slotCur = { ...this.slot };
+  }
+
+  // Three-second opening: fly out from inside the rings, then settle into the slot.
+  intro(duration = 3000) {
+    if (this.reduced) return;
+    this.introDur = duration;
+    this.introStart = performance.now();
+    this.spin -= 2.4;
   }
 
   frame() {
@@ -404,10 +423,36 @@ export class Sky {
     this.cur.y += (this.tilt.y - this.cur.y) * k;
     if (!this.drag.active) { this.drag.yaw += this.drag.vel; this.drag.vel *= Math.pow(0.08, dt); }
 
+    // Intro progress: A = the fly-out, B = settling into the slot.
+    let introA = 1, introB = 1;
+    if (this.introStart != null) {
+      const t = (performance.now() - this.introStart) / this.introDur;
+      if (t >= 1) this.introStart = null;
+      else {
+        introA = Math.min(1, t / 0.7);
+        introB = Math.max(0, Math.min(1, (t - 0.6) / 0.4));
+        if (!this._introBloomed && t > 0.55) { this._introBloomed = true; this.pulse = 1; }
+      }
+    } else this._introBloomed = false;
+    const easeOut = p => 1 - Math.pow(1 - p, 3);
+    const easeInOut = p => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+    const eA = easeOut(introA), eB = easeInOut(introB);
+
+    // Slot: where the sphere sits on screen, eased toward its target.
+    if (this.slot && this.slotCur) {
+      if (introB < 1) {
+        const full = { x: 0, y: 0, w: this.vw, h: this.vh };
+        for (const key of ["x", "y", "w", "h"]) this.slotCur[key] = lerp(full[key], this.slot[key], eB);
+      } else for (const key of ["x", "y", "w", "h"]) this.slotCur[key] += (this.slot[key] - this.slotCur[key]) * slow;
+      const sw = this.slotCur.w, sh = this.slotCur.h;
+      this.baseDist = Math.max(7.6, 7.6 * 0.95 / Math.max(0.3, sw / sh)) * (this.vh / Math.max(1, sh));
+    }
+
     // Spin: drift slowly, or turn the focused region toward the viewer.
     if (this.spinTarget != null) this.spin += angDiff(this.spin, this.spinTarget) * slow;
     else if (!this.reduced) this.spin += dt * 0.035 * this.speed;
-    this.root.rotation.x = -1.08 + this.cur.x * (this.zoom ? 0.4 : 1);
+    if (introA < 1) this.spin += dt * 9 * Math.pow(1 - introA, 2);
+    this.root.rotation.x = -1.08 + this.cur.x * (this.zoom ? 0.4 : 1) - (1 - eA) * 0.75;
     this.root.rotation.y = 0.42 * (1 - (this.zoom || 0) * 0.6) + this.cur.y * (this.zoom ? 0.4 : 1);
     this.ecliptic.rotation.z = this.spin + this.drag.yaw;
     this.stars.rotation.y = this.cur.y * 0.3 + this.spin * 0.15;
@@ -425,9 +470,25 @@ export class Sky {
       this.camGoal.look.set(0, 0, 0);
       this.camGoal.pos.set(0, 0, this.baseDist * (this.far ? 1.12 : 1) + breathe);
     }
-    this.camera.position.lerp(this.camGoal.pos, slow);
-    this.camLook.lerp(this.camGoal.look, slow);
+    if (introA < 1) {
+      // Start just inside the rings and pull back through them.
+      this.camera.position.set(0, (1 - eA) * 0.35, this.baseDist * (0.14 + 0.86 * eA));
+      this.camLook.set(0, 0, 0);
+    } else {
+      this.camera.position.lerp(this.camGoal.pos, slow);
+      this.camLook.lerp(this.camGoal.look, slow);
+    }
     this.camera.lookAt(this.camLook);
+
+    // Shift the projection so the sphere's centre lands in the middle of its slot.
+    this.camera.updateProjectionMatrix();
+    if (this.slotCur) {
+      const cx = this.slotCur.x + this.slotCur.w / 2, cy = this.slotCur.y + this.slotCur.h / 2;
+      const e = this.camera.projectionMatrix.elements;
+      e[8] = -(cx / this.vw * 2 - 1);
+      e[9] = (cy / this.vh * 2 - 1);
+      this.camera.projectionMatrixInverse.copy(this.camera.projectionMatrix).invert();
+    }
 
     this.pulse *= Math.pow(0.25, dt);
     const shift = this.cur.y * 0.35 + this.cur.x * 0.25;
@@ -464,6 +525,13 @@ export class Sky {
 
     const breath = this.reduced ? 1 : 1 + Math.sin(this.time * 1.4) * 0.06;
     this.core.scale.setScalar((0.55 + this.pulse * 0.9 + (this.consulting ? 0.25 : 0)) * breath);
+    // In reading mode the sphere is clipped to its slot so it never runs behind the cards.
+    if (this.clip && this.slotCur) {
+      const r = this.slotCur;
+      this.renderer.setScissorTest(false); this.renderer.clear();
+      this.renderer.setScissorTest(true);
+      this.renderer.setScissor(r.x, this.vh - r.y - r.h, r.w, r.h);
+    } else this.renderer.setScissorTest(false);
     this.renderer.render(this.scene, this.camera);
   }
 }

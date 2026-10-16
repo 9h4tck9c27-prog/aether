@@ -29,6 +29,13 @@ function toast(msg, ms = 3200) {
 // ---------- Sky ----------
 const sky = new Sky($("#sky"));
 sky.setSky(positions(new Date()));
+// The sphere is drawn inside .sphere-wrap's box; keep it in sync with the layout.
+function updateSlot(instant = false) {
+  const r = document.querySelector(".sphere-wrap").getBoundingClientRect();
+  if (r.width > 0 && r.height > 0) sky.setSlot(r, instant);
+}
+addEventListener("resize", () => updateSlot());
+if (window.visualViewport) visualViewport.addEventListener("resize", () => updateSlot());
 
 // ---------- Time of day ----------
 function sunAltitude(date, lat, lon) {
@@ -149,6 +156,7 @@ function showStep(i) {
 }
 function startOnboarding() {
   const ob = $("#onboard"); ob.hidden = false; document.body.classList.add("onboarding"); showStep(0);
+  requestAnimationFrame(() => updateSlot());
   $("#cityList").innerHTML = CITIES.map(c => `<option value="${esc(c[0])}, ${esc(c[1])}"></option>`).join("");
   const draft = {};
   ob.querySelector("[data-next]").onclick = () => showStep(1);
@@ -191,7 +199,7 @@ function startOnboarding() {
     $("#revealSub").textContent = sub;
     showStep(4);
   };
-  ob.querySelector("[data-finish]").onclick = () => { requestMotion(false); ob.hidden = true; document.body.classList.remove("onboarding"); sky.resize(); renderHome(); setTimeout(showTiltHint, 1500); };
+  ob.querySelector("[data-finish]").onclick = () => { requestMotion(false); ob.hidden = true; document.body.classList.remove("onboarding"); requestAnimationFrame(() => updateSlot()); renderHome(); setTimeout(showTiltHint, 1500); };
 }
 
 // ---------- Sheet ----------
@@ -270,10 +278,11 @@ const CONSULT_STEP_MS = 950;
 
 function startReading(r, entry, { consult = true } = {}) {
   document.body.classList.add("reading-mode");
+  sky.clip = true;
   $("#stage").hidden = false;
   $("#cards").hidden = true; $("#cards").innerHTML = ""; $("#bars").innerHTML = "";
   sky.setSky(r.sig.sky);
-  requestAnimationFrame(() => sky.resize());
+  requestAnimationFrame(() => updateSlot());
   reading = { r, entry, deck: buildDeck(r, natal, kp), index: -1 };
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (!consult || reduced) { $("#consult").hidden = true; showDeck(); return; }
@@ -437,9 +446,10 @@ function endReading() {
   reading = null;
   $("#stage").hidden = true;
   document.body.classList.remove("reading-mode");
+  sky.clip = false;
   sky.focus(null);
   sky.setSky(positions(new Date()));
-  requestAnimationFrame(() => sky.resize());
+  requestAnimationFrame(() => updateSlot());
   renderHome();
   maybeAskInstall();
 }
@@ -704,9 +714,45 @@ $("#menuBtn").onclick = openMenu;
 document.addEventListener("click", e => { if (e.target.closest(".tip-link")) openTip(e); });
 document.addEventListener("visibilitychange", () => { if (!document.hidden) { applyPhase(); renderHome(); } });
 
-if (profile) { natal = natalChart(profile); sky.setNatal(natal.pos, natal.asc); renderHome(); setTimeout(showTiltHint, 800); }
+if (profile) { natal = natalChart(profile); sky.setNatal(natal.pos, natal.asc); renderHome(); }
 else startOnboarding();
 loadKp();
+
+// ---------- Opening animation: every launch ----------
+function playIntro() {
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const intro = $("#intro"), word = $("#introWord");
+  updateSlot(true);
+  if (reduced) { document.body.classList.remove("introing", "intro-wait"); setTimeout(showTiltHint, 800); return; }
+  document.body.classList.add("introing");
+  window.__introStart = performance.now();
+  intro.hidden = false;
+  sky.intro(3000);
+  requestAnimationFrame(() => document.body.classList.remove("intro-wait"));
+  const land = () => {
+    // Fly the big wordmark into its resting place: the top bar, or the welcome screen during setup.
+    const target = document.querySelector(document.body.classList.contains("onboarding") ? ".ob-step:not([hidden]) .ob-brand" : ".topbar .wordmark");
+    if (!target) return;
+    const from = word.getBoundingClientRect(), to = target.getBoundingClientRect();
+    const scale = parseFloat(getComputedStyle(target).fontSize) / parseFloat(getComputedStyle(word).fontSize);
+    const dx = (to.left + to.width / 2) - (from.left + from.width / 2), dy = (to.top + to.height / 2) - (from.top + from.height / 2);
+    intro.classList.add("leaving");
+    word.style.animation = "none";
+    word.animate([
+      { transform: "translate(0, 0) scale(1)", color: getComputedStyle(word).color, textShadow: getComputedStyle(word).textShadow },
+      { transform: `translate(${dx}px, ${dy}px) scale(${scale})`, color: getComputedStyle(target).color, textShadow: "0 0 0 transparent" },
+    ], { duration: 950, easing: "cubic-bezier(.65, 0, .3, 1)", fill: "forwards" });
+  };
+  setTimeout(land, 1900);
+  setTimeout(() => {
+    document.body.classList.remove("introing");
+    intro.hidden = true; intro.classList.remove("leaving");
+    word.getAnimations().forEach(an => an.cancel()); word.style.animation = "";
+    setTimeout(showTiltHint, 900);
+  }, 2900);
+}
+(document.fonts && document.fonts.ready ? Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 600))]) : Promise.resolve())
+  .then(() => requestAnimationFrame(playIntro));
 
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("/sw.js").catch(() => { });
 

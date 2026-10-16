@@ -36,8 +36,12 @@
   <link rel="stylesheet" href="/css/styles.css">
   <script src="/vendor/astronomy.browser.min.js" defer></script>
 </head>
-<body data-phase="night">
+<body data-phase="night" class="introing intro-wait">
   <div class="sky-bg" aria-hidden="true"></div>
+  <div class="intro" id="intro" aria-hidden="true" hidden>
+    <span class="intro-word" id="introWord">æther</span>
+    <span class="intro-tag" id="introTag">Your daily astrological weather</span>
+  </div>
   <div class="mood-tint" aria-hidden="true"></div>
 
   <main id="app">
@@ -64,7 +68,10 @@
     </section>
 
     <footer class="home-foot">
-      <button class="primary" id="checkinBtn">How's today?</button>
+      <button class="primary cta" id="checkinBtn">
+        <span class="cta-label">Start reading</span>
+        <span class="sparkles" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+      </button>
       <p class="tip-line">Æther is free, with no ads and no paywall. <a href="#" class="tip-link">Chip in to keep it that way.</a></p>
     </footer>
   </main>
