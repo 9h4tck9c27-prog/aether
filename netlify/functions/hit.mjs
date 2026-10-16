@@ -1,5 +1,5 @@
 // Anonymous visit counts: one number per day per event. No IP, no device ID, no cookies.
-// The phone only sends this once a day, so the number is roughly "how many people opened Æther today".
+// The phone only sends this once a day, so the number is roughly "how many people opened æther today".
 import { getStore } from "@netlify/blobs";
 
 const EVENTS = new Set(["open", "reading"]);

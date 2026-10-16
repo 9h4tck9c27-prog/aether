@@ -1,4 +1,4 @@
-// Æther astrology engine. Runs entirely in the browser using Astronomy Engine (global `Astronomy`).
+// æther astrology engine. Runs entirely in the browser using Astronomy Engine (global `Astronomy`).
 import {
   SIGNS, PLANETS, PLANET_INFO, ASPECTS, NAKSHATRAS, TITHIS, ECHOES, THEMES, THEME_LINES,
 } from "./data.js";

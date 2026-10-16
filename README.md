@@ -1,8 +1,8 @@
-# Æther
+# æther
 
 Your daily astrological weather. It's not just you.
 
-Æther is a free web app that reads your birth chart (Western and Vedic together) against today's sky, the real space weather above you, and how everyone else is feeling. You check in on any kind of day, heavy or golden, and get a reading that starts from your own words.
+æther is a free web app that reads your birth chart (Western and Vedic together) against today's sky, the real space weather above you, and how everyone else is feeling. You check in on any kind of day, heavy or golden, and get a reading that starts from your own words.
 
 This is the first prototype.
 
@@ -50,4 +50,4 @@ Then open http://localhost:8000.
 - Space weather: [NOAA Space Weather Prediction Center](https://www.swpc.noaa.gov)
 - Fonts: Fraunces and Figtree, via Fontsource (SIL Open Font License)
 
-Æther is for reflection, not prediction.
+æther is for reflection, not prediction.

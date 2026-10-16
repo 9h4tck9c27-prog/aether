@@ -707,7 +707,7 @@ async function shareCard(r, deck) {
   const blob = await renderShareImage(r, deck);
   const close = (deck || []).find(c => c.type === "close"), line = close && close.line;
   const file = new File([blob], "aether-sky.png", { type: "image/png" });
-  const text = `${line && line.text ? "“" + line.text + "”" + (line.author ? " — " + line.author : "") + "\n\n" : ""}My sky today on Æther: ${SITE}`;
+  const text = `${line && line.text ? "“" + line.text + "”" + (line.author ? " — " + line.author : "") + "\n\n" : ""}My sky today on æther: ${SITE}`;
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try { await navigator.share({ files: [file], text }); } catch { /* cancelled */ }
     return;
@@ -718,7 +718,7 @@ async function shareCard(r, deck) {
   toast("Saved your sky card as an image.");
 }
 async function shareApp() {
-  const data = { title: "Æther", text: "Your daily astrological weather. It's not just you.", url: SITE + "/" };
+  const data = { title: "æther", text: "Your daily astrological weather. It's not just you.", url: SITE + "/" };
   if (navigator.share) { try { await navigator.share(data); } catch { } return; }
   try { await navigator.clipboard.writeText(data.url); toast("Link copied."); } catch { toast(data.url); }
 }
@@ -792,7 +792,7 @@ function openJournal() {
       const known = new Set(entries.map(x => x.id));
       entries = entries.concat((data.entries || []).filter(x => !known.has(x.id))).sort((a, b) => a.id - b.id);
       store.set("entries", entries); toast("Backup restored."); openJournal();
-    } catch { toast("That file isn't a Æther backup."); }
+    } catch { toast("That file isn't an æther backup."); }
   };
 }
 
@@ -816,11 +816,11 @@ function openInstall() {
         <div class="install-step"><span class="badge">${plus}</span><p>Scroll down and choose Add to Home Screen.</p></div>
       </div>
       <button class="ghost" id="notNow" style="width:100%">Not now</button>`
-    : deferredPrompt ? `<button class="primary" id="installNow">Add Æther</button><button class="ghost" id="notNow" style="width:100%;margin-top:10px">Not now</button>`
+    : deferredPrompt ? `<button class="primary" id="installNow">Add æther</button><button class="ghost" id="notNow" style="width:100%;margin-top:10px">Not now</button>`
       : `<p>Use your browser's menu and choose Install app or Add to Home Screen.</p><button class="ghost" id="notNow" style="width:100%">Got it</button>`;
   openSheet(`
     <img class="install-icon" src="/icons/icon-192.png" alt="">
-    <h2 id="sheetTitle">Keep Æther on your home screen</h2>
+    <h2 id="sheetTitle">Keep æther on your home screen</h2>
     <p>It opens full-screen like an app, and your sky journal stays safer on this phone.</p>
     ${body}
   `);
@@ -842,9 +842,9 @@ function openMenu() {
   const phases = ["auto", "dawn", "day", "dusk", "night"];
   const cur = phaseOverride || "auto";
   openSheet(`
-    <h2 id="sheetTitle">Æther</h2>
+    <h2 id="sheetTitle">æther</h2>
     <div class="menu-list">
-      <button class="menu-item" id="mShare">${ic.share}<span>Share Æther<small>Send the app to a friend</small></span></button>
+      <button class="menu-item" id="mShare">${ic.share}<span>Share æther<small>Send the app to a friend</small></span></button>
       ${isStandalone() ? "" : `<button class="menu-item" id="mInstall">${ic.home}<span>Add to home screen<small>Open it full-screen, like an app</small></span></button>`}
       <button class="menu-item" id="mHere">${ic.pin}<span>${prefs.useHere ? "Colour the sky for where I am" : "Use where I am for colours and weather"}<small>${prefs.useHere ? "On. Tap to follow your time zone instead" : "Off. Colours follow your time zone; weather uses a rough guess of your city"}</small></span></button>
       <div class="menu-item" style="display:block;cursor:default">Preview time of day<small>Try each look for a moment. Auto follows the real Sun where you are.</small>
@@ -858,7 +858,7 @@ function openMenu() {
       <a class="menu-item" href="/privacy.html">${ic.pin.replace('<path d="M12 21s-6-5.3-6-11a6 6 0 0 1 12 0c0 5.7-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/>', '<path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"/>')}<span>Privacy Policy</span></a>
       <a class="menu-item" href="/terms.html">${ic.edit.replace('<path d="M4 20h4L19 9l-4-4L4 16z"/>', '<path d="M7 3h8l4 4v14H7z"/><path d="M10 12h6M10 16h6"/>')}<span>Terms of Use</span></a>
     </div>
-    <p class="credits">Planet positions are calculated on your phone with Astronomy Engine (open source). Space weather comes from NOAA's Space Weather Prediction Center. Local weather is from MET Norway (CC BY 4.0). Birthplaces come from GeoNames (CC BY 4.0). Lines from the traditions are paraphrased in our own words. Æther is for reflection, not prediction.</p>
+    <p class="credits">Planet positions are calculated on your phone with Astronomy Engine (open source). Space weather comes from NOAA's Space Weather Prediction Center. Local weather is from MET Norway (CC BY 4.0). Birthplaces come from GeoNames (CC BY 4.0). Lines from the traditions are paraphrased in our own words. æther is for reflection, not prediction.</p>
   `);
   $("#mShare").onclick = shareApp;
   const inst = $("#mInstall"); if (inst) inst.onclick = openInstall;
@@ -887,8 +887,7 @@ function openMenu() {
 
 function openTip(e) {
   if (e) e.preventDefault();
-  if (TIP_URL) return void open(TIP_URL, "_blank", "noopener");
-  toast("Tips open very soon. Thank you for wanting to chip in!");
+  open(TIP_URL, "_blank", "noopener");
 }
 
 // ---------- Wiring ----------
@@ -950,7 +949,7 @@ if ("serviceWorker" in navigator && location.protocol === "https:") {
   navigator.serviceWorker.addEventListener("controllerchange", () => {
     if (!hadController) return;
     const t = $("#toast");
-    toast("A new version of Æther is ready. Tap here to refresh.", 15000);
+    toast("A new version of æther is ready. Tap here to refresh.", 15000);
     t.style.pointerEvents = "auto"; t.style.cursor = "pointer";
     t.onclick = () => location.reload();
   });

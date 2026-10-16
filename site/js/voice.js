@@ -1,5 +1,5 @@
-// Æther's voice: plain, warm, human. Astrology terms live in the small print, with a definition.
-// All lines are original to Æther unless an author is named; named authors are in the public domain.
+// æther's voice: plain, warm, human. Astrology terms live in the small print, with a definition.
+// All lines are original to æther unless an author is named; named authors are in the public domain.
 
 export const pickBy = (arr, seed) => arr[((seed % arr.length) + arr.length) % arr.length];
 
