@@ -375,7 +375,7 @@ function renderCard(c, i, r) {
       + rv(`<h2 class="card-title">${esc(c.title)}</h2>`, d++)
       + c.body.map(b => rv(`<p class="lead">${esc(b)}</p>`, d++)).join("")
       + rv(`<div class="card-actions">${main}<div class="row"><button class="ghost" data-act="share">Share this sky</button><button class="ghost" data-act="${c.bucket === "mixed" ? "journal" : "done"}">${c.bucket === "mixed" ? "Journal" : "Done"}</button></div><p class="bottled" data-bottled hidden>A new star in your journal.</p></div>`, d++)
-      + (c.bucket === "golden" ? rv(`<p class="tip-line">Æther is free, with no ads and no paywall. <a href="#" class="tip-link">Chip in to keep it that way.</a></p>`, d++) : "");
+      + (c.bucket === "golden" ? rv(`<div class="card-tip"><button class="tip-btn" type="button"><span class="tip-heart" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20.5s-7.5-4.6-7.5-10.3A4.3 4.3 0 0 1 12 7.4a4.3 4.3 0 0 1 7.5 2.8c0 5.7-7.5 10.3-7.5 10.3z"/></svg></span><span class="tip-text"><b>Chip in to keep Æther free</b><small>No ads, no paywall. Tips keep the sky turning.</small></span><span class="tip-arrow" aria-hidden="true">›</span></button></div>`, d++) : "");
   }
   return `<article class="card card-${c.type}" aria-roledescription="card" aria-label="Card ${i + 1} of ${reading.deck.length}"><div class="card-inner">${inner}</div></article>`;
 }
@@ -711,7 +711,7 @@ function openTip(e) {
 $("#checkinBtn").onclick = openCheckin;
 $("#journalBtn").onclick = openJournal;
 $("#menuBtn").onclick = openMenu;
-document.addEventListener("click", e => { if (e.target.closest(".tip-link")) openTip(e); });
+document.addEventListener("click", e => { if (e.target.closest(".tip-link, .tip-btn")) openTip(e); });
 document.addEventListener("visibilitychange", () => { if (!document.hidden) { applyPhase(); renderHome(); } });
 
 if (profile) { natal = natalChart(profile); sky.setNatal(natal.pos, natal.asc); renderHome(); }
