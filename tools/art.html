@@ -4,6 +4,7 @@
 @font-face { font-family: "Fraunces"; font-style: italic; font-weight: 400; src: url("../node_modules/@fontsource/fraunces/files/fraunces-latin-400-italic.woff2") format("woff2"); }
 @font-face { font-family: "Fraunces"; font-style: normal; font-weight: 400; src: url("../node_modules/@fontsource/fraunces/files/fraunces-latin-400-normal.woff2") format("woff2"); }
 @font-face { font-family: "Figtree"; font-weight: 500; src: url("../node_modules/@fontsource/figtree/files/figtree-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "Figtree"; font-weight: 600; src: url("../node_modules/@fontsource/figtree/files/figtree-latin-600-normal.woff2") format("woff2"); }
 body { margin: 0; background: #000; }
 canvas { display: block; }
 </style></head>
@@ -58,7 +59,7 @@ function stars(g, w, h, n, seed = 7) {
   for (let i = 0; i < n; i++) { g.fillStyle = `rgba(255,255,255,${rnd() * 0.6 + 0.15})`; g.beginPath(); g.arc(rnd() * w, rnd() * h, rnd() * Math.max(w, h) / 900 + 0.4, 0, 7); g.fill(); }
 }
 function make(kind, size) {
-  const [w, h] = kind === "og" ? [1200, 630] : [size, size];
+  const [w, h] = kind === "og" ? [1200, 630] : kind === "square" ? [1200, 1200] : [size, size];
   const c = document.createElement("canvas"); c.width = w; c.height = h; c.id = "art"; document.body.appendChild(c);
   const g = c.getContext("2d");
   background(g, w, h);
@@ -68,6 +69,22 @@ function make(kind, size) {
     g.fillStyle = "#F7F2FB"; g.font = 'italic 400 104px "Fraunces"'; g.fillText("æther", 610, 300);
     g.fillStyle = "rgba(247,242,251,.82)"; g.font = '400 35px "Fraunces"'; g.fillText("Your daily astrological weather.", 614, 368);
     g.fillStyle = "rgba(247,242,251,.6)"; g.font = '500 30px "Figtree"'; g.fillText("It's not just you.", 616, 430);
+  } else if (kind === "square") {
+    // Big square link preview for iMessage: a large glowing sphere, the name, a question and a call to action.
+    stars(g, w, h, 260, 11);
+    const warm = g.createRadialGradient(w * 0.5, h * 1.05, 0, w * 0.5, h * 1.05, w * 0.85);
+    warm.addColorStop(0, "rgba(255,184,154,.42)"); warm.addColorStop(1, "rgba(255,184,154,0)");
+    g.fillStyle = warm; g.fillRect(0, 0, w, h);
+    sphere(g, w / 2, 440, 345);
+    g.textAlign = "center";
+    g.fillStyle = "#F7F2FB"; g.font = 'italic 400 150px "Fraunces"'; g.fillText("æther", w / 2, 950);
+    g.fillStyle = "rgba(247,242,251,.9)"; g.font = '400 50px "Fraunces"'; g.fillText("What is the sky saying about your day?", w / 2, 1030);
+    // Call-to-action pill
+    const label = "Get your free reading", pw = 470, ph = 74, px = w / 2 - pw / 2, py = 1068;
+    const grad = g.createLinearGradient(px, 0, px + pw, 0);
+    [["#B8A4FF", 0], ["#9EE6D4", .45], ["#FFB89A", 1]].forEach(([c, s]) => grad.addColorStop(s, c));
+    g.fillStyle = grad; g.beginPath(); g.roundRect(px, py, pw, ph, ph / 2); g.fill();
+    g.fillStyle = "#1C1230"; g.font = '600 32px "Figtree"'; g.fillText(label + "  ›", w / 2, py + 48);
   } else {
     const safe = kind === "maskable" ? 0.62 : 0.78;
     if (size >= 120) stars(g, w, h, Math.round(size / 9));
@@ -75,7 +92,7 @@ function make(kind, size) {
   }
 }
 const q = new URLSearchParams(location.search);
-document.fonts.load('italic 400 104px "Fraunces"').then(() => document.fonts.load('500 30px "Figtree"')).then(() => document.fonts.load('400 40px "Fraunces"')).then(() => {
+document.fonts.load('italic 400 104px "Fraunces"').then(() => document.fonts.load('500 30px "Figtree"')).then(() => document.fonts.load('600 32px "Figtree"')).then(() => document.fonts.load('400 40px "Fraunces"')).then(() => {
   make(q.get("kind"), +q.get("size") || 512);
   document.title = "ready";
 });

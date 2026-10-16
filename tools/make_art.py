@@ -12,6 +12,7 @@ jobs = [
     ("icon", 180, "icons/apple-touch-icon.png"),
     ("icon", 32, "icons/favicon-32.png"),
     ("og", 0, "og-image.png"),
+    ("square", 0, "og-square.png")  # then converted to og-square.jpg,
 ]
 with sync_playwright() as p:
     b = p.chromium.launch(args=["--allow-file-access-from-files"])

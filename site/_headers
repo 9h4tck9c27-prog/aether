@@ -6,3 +6,5 @@
   Cache-Control: public, max-age=31536000
 /manifest.webmanifest
   Content-Type: application/manifest+json
+/og-*.jpg
+  Cache-Control: public, max-age=86400
