@@ -355,7 +355,7 @@ function renderCard(c, i, r) {
       + rv(`<h2 class="card-title">${esc(c.title)}</h2>`, d++)
       + rv(`<div class="crowd-big"><strong data-count="${c.crowd.count}">0</strong><span>people near you logged a ${esc(c.crowd.label)} day too</span></div>`, d++)
       + rv(`<p class="lead">${esc(c.lead)}</p>`, d++)
-      + rv(techBlock(c.tech ? { ...c.tech, text: c.tech.text + " The people count is a sample in this prototype." } : { name: "A note", text: "The people count is a sample in this prototype." }), d++);
+      + rv(techBlock(c.tech), d++);
   } else if (c.type === "close") {
     const saved = reading.entry.bottled;
     inner = kicker
@@ -446,7 +446,7 @@ function countUp(el) {
 function cardAction(b) {
   const act = b.dataset.act;
   if (act === "next") return goCard(1);
-  if (act === "share") return shareCard(reading.r, reading.deck[reading.deck.length - 1].line);
+  if (act === "share") return shareCard(reading.r, reading.deck);
   if (act === "breathe") return startRitual();
   if (act === "done") return endReading();
   if (act === "save") {
@@ -500,47 +500,92 @@ function wrap(ctx, text, maxW) {
   for (const w of words) { const t = line ? line + " " + w : w; if (ctx.measureText(t).width > maxW && line) { lines.push(line); line = w; } else line = t; }
   if (line) lines.push(line); return lines;
 }
-async function renderShareImage(r, line) {
-  try { await document.fonts.load('400 64px "Fraunces"'); await document.fonts.load('italic 400 40px "Fraunces"'); await document.fonts.load('500 30px "Figtree"'); } catch { }
-  line = line || { text: r.headline };
-  const W = 1080, H = 1350, c = document.createElement("canvas"); c.width = W; c.height = H;
+// The share image: a story-sized digest of the whole reading, with the closing line at the bottom.
+// It never includes the words the person wrote.
+async function renderShareImage(r, deck) {
+  try { await document.fonts.load('400 64px "Fraunces"'); await document.fonts.load('italic 400 40px "Fraunces"'); await document.fonts.load('500 30px "Figtree"'); await document.fonts.load('650 30px "Figtree"'); } catch { }
+  deck = deck || [];
+  const close = deck.find(c => c.type === "close");
+  const line = close ? close.line : null;
+  const items = deck.filter(c => c.type === "transit" || c.type === "moon");
+  const W = 1080, H = 1920, c = document.createElement("canvas"); c.width = W; c.height = H;
   const g = c.getContext("2d");
-  const grads = { heavy: ["#120a26", "#34407a"], mixed: ["#120a26", "#4f3f92"], golden: ["#271a4e", "#ee9f8a"] }[r.bucket];
+  const M = 84, TW = W - M * 2;
+  const grads = { heavy: ["#120a26", "#2e3970"], mixed: ["#120a26", "#463888"], golden: ["#271a4e", "#e2957f"] }[r.bucket];
   const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, grads[0]); bg.addColorStop(1, grads[1]);
   g.fillStyle = bg; g.fillRect(0, 0, W, H);
-  const cy = 400;
-  const halo = g.createRadialGradient(W / 2, cy, 10, W / 2, cy, 480);
+
+  // Small sphere at the top
+  const cx = W / 2, cy = 330;
+  const halo = g.createRadialGradient(cx, cy, 10, cx, cy, 380);
   halo.addColorStop(0, "rgba(184,164,255,.32)"); halo.addColorStop(1, "rgba(184,164,255,0)");
-  g.fillStyle = halo; g.fillRect(0, 0, W, H);
-  let s0 = Math.floor(Date.now() / 864e5); const rnd = () => (s0 = (s0 * 16807) % 2147483647) / 2147483647;
-  for (let i = 0; i < 150; i++) { g.fillStyle = `rgba(255,255,255,${rnd() * .55 + .1})`; g.beginPath(); g.arc(rnd() * W, rnd() * H * .75, rnd() * 1.8 + .3, 0, 7); g.fill(); }
-  const ringGrad = () => { const rg = g.createLinearGradient(240, 0, 840, 0); [["#B8A4FF", 0], ["#9EE6D4", .35], ["#FFB89A", .7], ["#F7C8E8", 1]].forEach(([col, st]) => rg.addColorStop(st, col)); return rg; };
-  const ell = (rx, ry, rot, w, al) => { g.save(); g.translate(W / 2, cy); g.rotate(rot); g.globalAlpha = al; g.strokeStyle = ringGrad(); g.lineWidth = w; g.beginPath(); g.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2); g.stroke(); g.restore(); };
-  ell(300, 100, -0.18, 5, 1); ell(300, 136, 0.32, 2.5, .55); ell(110, 300, 0.1, 2, .4); ell(200, 66, -0.18, 2.5, .6);
-  const pt = lon => { const a = lon * Math.PI / 180, x = Math.cos(a) * 300, y = Math.sin(a) * 100; return [W / 2 + x * Math.cos(-0.18) - y * Math.sin(-0.18), cy + x * Math.sin(-0.18) + y * Math.cos(-0.18)]; };
+  g.fillStyle = halo; g.fillRect(0, 0, W, 760);
+  let s0 = Math.floor(Date.now() / 864e5) || 7; const rnd = () => (s0 = (s0 * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 160; i++) { g.fillStyle = `rgba(255,255,255,${rnd() * .5 + .1})`; g.beginPath(); g.arc(rnd() * W, rnd() * H, rnd() * 1.7 + .3, 0, 7); g.fill(); }
+  const ringGrad = () => { const rg = g.createLinearGradient(-260, 0, 260, 0); [["#B8A4FF", 0], ["#9EE6D4", .35], ["#FFB89A", .7], ["#F7C8E8", 1]].forEach(([col, st]) => rg.addColorStop(st, col)); return rg; };
+  const ell = (rx, ry, rot, w, al) => { g.save(); g.translate(cx, cy); g.rotate(rot); g.globalAlpha = al; g.strokeStyle = ringGrad(); g.lineWidth = w; g.beginPath(); g.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2); g.stroke(); g.restore(); };
+  ell(250, 84, -0.18, 4.5, 1); ell(250, 114, 0.32, 2.2, .55); ell(92, 250, 0.1, 2, .4); ell(168, 56, -0.18, 2.2, .6);
+  const pt = lon => { const a = lon * Math.PI / 180, x = Math.cos(a) * 250, y = Math.sin(a) * 84; return [cx + x * Math.cos(-0.18) - y * Math.sin(-0.18), cy + x * Math.sin(-0.18) + y * Math.cos(-0.18)]; };
   for (const [p, v] of Object.entries(r.sig.sky)) {
     const [px, py] = pt(v.lon), big = p === "Sun" || p === "Moon";
-    const pg = g.createRadialGradient(px, py, 0, px, py, big ? 32 : 20); pg.addColorStop(0, "rgba(255,255,255,1)"); pg.addColorStop(1, "rgba(255,255,255,0)");
-    g.fillStyle = pg; g.beginPath(); g.arc(px, py, big ? 32 : 20, 0, 7); g.fill();
+    const pg = g.createRadialGradient(px, py, 0, px, py, big ? 26 : 16); pg.addColorStop(0, "rgba(255,255,255,1)"); pg.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = pg; g.beginPath(); g.arc(px, py, big ? 26 : 16, 0, 7); g.fill();
   }
-  const core = g.createRadialGradient(W / 2, cy, 0, W / 2, cy, 56); core.addColorStop(0, "#fff"); core.addColorStop(1, "rgba(255,255,255,0)");
-  g.fillStyle = core; g.beginPath(); g.arc(W / 2, cy, 56, 0, 7); g.fill();
-  // The line, big and centred
+  const core = g.createRadialGradient(cx, cy, 0, cx, cy, 46); core.addColorStop(0, "#fff"); core.addColorStop(1, "rgba(255,255,255,0)");
+  g.fillStyle = core; g.beginPath(); g.arc(cx, cy, 46, 0, 7); g.fill();
   g.textAlign = "center";
-  let size = 70, lines;
-  do { g.font = `italic 400 ${size}px "Fraunces", Georgia, serif`; lines = wrap(g, line.text, W - 200); size -= 4; } while (lines.length > 5 && size > 44);
-  const lh = size * 1.3, top = 800 - (lines.length * lh) / 2 + lh / 2;
-  g.fillStyle = "#F7F2FB";
-  lines.forEach((l, i) => g.fillText(l, W / 2, top + i * lh));
-  if (line.author) { g.fillStyle = "rgba(247,242,251,.7)"; g.font = '500 30px "Figtree", sans-serif'; g.fillText(`— ${line.author}`, W / 2, top + lines.length * lh + 20); }
-  g.fillStyle = "rgba(247,242,251,.6)"; g.font = '500 28px "Figtree", sans-serif';
-  g.fillText(new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" }), W / 2, 110);
-  g.fillStyle = "#F7F2FB"; g.font = 'italic 400 46px "Fraunces", Georgia, serif'; g.fillText("æther", W / 2, H - 120);
-  g.fillStyle = "rgba(247,242,251,.6)"; g.font = '400 26px "Figtree", sans-serif'; g.fillText(location.host, W / 2, H - 76);
+  g.fillStyle = "rgba(247,242,251,.65)"; g.font = '500 28px "Figtree", sans-serif';
+  g.fillText(r.now.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" }), cx, 96);
+
+  // Build the text blocks, then shrink everything together until it fits.
+  const blocks = [];
+  blocks.push({ kind: "head", text: r.headline });
+  for (const it of items) blocks.push({ kind: "item", kicker: it.kicker, title: it.title, meta: [it.pill, it.tech && it.tech.name].filter(Boolean).join("  ·  ") });
+  if (line) blocks.push({ kind: "quote", text: line.text, author: line.author });
+  const top = 640, bottom = H - 190;
+  const layout = k => {
+    const f = { head: 62 * k, kick: 25 * k, title: 40 * k, meta: 24 * k, quote: 46 * k, author: 26 * k };
+    let h = 0; const out = [];
+    for (const b of blocks) {
+      if (b.kind === "head") { g.font = `400 ${f.head}px "Fraunces", serif`; const ls = wrap(g, b.text, TW); out.push({ b, ls, f }); h += ls.length * f.head * 1.16 + 40 * k; }
+      else if (b.kind === "item") { g.font = `400 ${f.title}px "Fraunces", serif`; const ls = wrap(g, b.title, TW); g.font = `500 ${f.meta}px "Figtree", sans-serif`; const ms = wrap(g, b.meta, TW); out.push({ b, ls, ms, f }); h += f.kick * 1.5 + ls.length * f.title * 1.2 + ms.length * f.meta * 1.4 + 36 * k; }
+      else { g.font = `italic 400 ${f.quote}px "Fraunces", serif`; const ls = wrap(g, `“${b.text}”`, TW); out.push({ b, ls, f }); h += 30 * k + ls.length * f.quote * 1.26 + (b.author ? f.author * 1.8 : 0); }
+    }
+    return { out, h };
+  };
+  let k = 1, L = layout(k);
+  while (L.h > bottom - top && k > 0.6) { k -= 0.04; L = layout(k); }
+  let y = top + Math.max(0, (bottom - top - L.h) / 2);
+  g.textAlign = "left";
+  for (const { b, ls, ms, f } of L.out) {
+    if (b.kind === "head") {
+      g.fillStyle = "#F7F2FB"; g.font = `400 ${f.head}px "Fraunces", serif`;
+      ls.forEach(l => { y += f.head; g.fillText(l, M, y); y += f.head * 0.16; });
+      y += 40 * k;
+    } else if (b.kind === "item") {
+      g.fillStyle = "rgba(247,242,251,.55)"; g.font = `600 ${f.kick}px "Figtree", sans-serif`;
+      y += f.kick; g.fillText(b.kicker, M, y); y += f.kick * 0.5;
+      g.fillStyle = "#F7F2FB"; g.font = `400 ${f.title}px "Fraunces", serif`;
+      ls.forEach(l => { y += f.title; g.fillText(l, M, y); y += f.title * 0.2; });
+      g.fillStyle = "rgba(247,242,251,.62)"; g.font = `500 ${f.meta}px "Figtree", sans-serif`;
+      ms.forEach(l => { y += f.meta * 1.15; g.fillText(l, M, y); y += f.meta * 0.25; });
+      y += 36 * k;
+    } else {
+      g.strokeStyle = "rgba(247,242,251,.25)"; g.lineWidth = 2; g.beginPath(); g.moveTo(M, y + 4); g.lineTo(M + 120, y + 4); g.stroke();
+      y += 30 * k;
+      g.fillStyle = "#F7F2FB"; g.font = `italic 400 ${f.quote}px "Fraunces", serif`;
+      ls.forEach(l => { y += f.quote; g.fillText(l, M, y); y += f.quote * 0.26; });
+      if (b.author) { g.fillStyle = "rgba(247,242,251,.65)"; g.font = `500 ${f.author}px "Figtree", sans-serif`; y += f.author * 1.5; g.fillText(`— ${b.author}`, M, y); }
+    }
+  }
+  g.textAlign = "center";
+  g.fillStyle = "#F7F2FB"; g.font = 'italic 400 50px "Fraunces", Georgia, serif'; g.fillText("æther", cx, H - 110);
+  g.fillStyle = "rgba(247,242,251,.6)"; g.font = '400 26px "Figtree", sans-serif'; g.fillText(location.host, cx, H - 66);
   return new Promise(res => c.toBlob(res, "image/png"));
 }
-async function shareCard(r, line) {
-  const blob = await renderShareImage(r, line);
+async function shareCard(r, deck) {
+  const blob = await renderShareImage(r, deck);
+  const close = (deck || []).find(c => c.type === "close"), line = close && close.line;
   const file = new File([blob], "aether-sky.png", { type: "image/png" });
   const text = `${line && line.text ? "“" + line.text + "”" + (line.author ? " — " + line.author : "") + "\n\n" : ""}My sky today on Æther: ${location.origin}`;
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -776,4 +821,4 @@ if ("serviceWorker" in navigator && location.protocol === "https:") navigator.se
 // Testing hooks for previews: ?phase=dusk
 const qp = new URLSearchParams(location.search).get("phase");
 if (qp && ["dawn", "day", "dusk", "night"].includes(qp)) { phaseOverride = qp; applyPhase(); }
-window.__aether = { openCheckin, openJournal, openMenu, openInstall, writeReading: () => writeReading };
+window.__aether = { openCheckin, openJournal, openMenu, openInstall, writeReading: () => writeReading, shareImage: async () => { const b = await renderShareImage(reading.r, reading.deck); return await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(b); }); } };

@@ -8,6 +8,7 @@ import {
   THEME_PLAIN, OPEN_LINES, PLAIN_SINGULAR,
 } from "./voice.js";
 
+const MIN_CROWD = 25;
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 const ASPECT_GLYPH = { conjunction: "☌", sextile: "⚹", square: "□", trine: "△", opposition: "☍" };
 const glyph = p => (p === "Ascendant" ? "AC" : PLANET_GLYPHS[p]);
@@ -104,7 +105,8 @@ export function buildDeck(r, natal, kp) {
   }];
   for (const s of r.ranked.slice(0, 2)) cards.push(transitCard(s, r, natal));
   cards.push(moonCard(r));
-  cards.push(togetherCard(r, kp));
+  // Only show "people near you" when there are enough real check-ins to count.
+  if (r.crowd && r.crowd.count >= MIN_CROWD) cards.push(togetherCard(r, kp));
   const line = closingLine(r);
   const links = [
     ...r.ranked.slice(0, 3).map(s => [["sky", s.t], ["natal", s.n]]),

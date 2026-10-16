@@ -275,8 +275,9 @@ export function writeReading({ feel, chips, text, natal, profile, kp, now = new 
     else if (kp >= 4) whoElse.push(`Earth's magnetic field is unsettled (Kp ${kp.toFixed(1)}), a little restlessness in the literal sky.`);
     else whoElse.push(`Space weather is calm (Kp ${kp.toFixed(1)}), so this one is more about the planets than the Sun.`);
   }
-  const sample = 400 + ((seed * 7919) % 3600);
-  const crowd = { count: sample, label: bucket === "heavy" ? "heavy" : bucket === "golden" ? "bright" : "mixed" };
+  // Real "people near you" counts arrive with the live version. Until then there is no count,
+  // and the card that shows it is skipped.
+  const crowd = null;
 
   const echo = echoFor(ranked[0], seed);
   const closing = bucket === "heavy"
