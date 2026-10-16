@@ -65,17 +65,27 @@ function listenTilt() {
   addEventListener("deviceorientation", e => { if (e.beta != null) sky.setTilt(e.beta, e.gamma || 0); });
 }
 const needsPermission = typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function";
+let tilting = false;
+function startTilt() { if (!tilting) { tilting = true; listenTilt(); } $("#tiltBtn").hidden = true; }
+// Must be called straight from a tap: iPhone only shows the motion prompt inside a user gesture.
+function requestMotion(quiet) {
+  if (!needsPermission || tilting) return;
+  let req;
+  try { req = DeviceOrientationEvent.requestPermission(); } catch { return; }
+  req.then(r => {
+    if (r === "granted") { store.set("tiltOk", true); startTilt(); if (!quiet) toast("Tilt your phone to turn the sky."); }
+    else { store.set("tiltOk", false); $("#tiltBtn").hidden = true; store.set("tiltDenied", true); if (!quiet) toast("Motion is off, so drag the sky to turn it. You can allow motion in Safari's site settings."); }
+  }).catch(() => { $("#tiltBtn").hidden = true; });
+}
 if (needsPermission) {
-  const btn = $("#tiltBtn");
-  if (!store.get("tiltOk", false)) btn.hidden = false; else listenTilt();
-  btn.addEventListener("click", async () => {
-    try {
-      const r = await DeviceOrientationEvent.requestPermission();
-      if (r === "granted") { listenTilt(); btn.hidden = true; store.set("tiltOk", true); toast("Tilt your phone to turn the sky."); }
-      else toast("Motion is off. You can still drag the sky to turn it.");
-    } catch { btn.hidden = true; listenTilt(); }
-  });
-} else if ("DeviceOrientationEvent" in window) listenTilt();
+  if (store.get("tiltOk", false)) requestMotion(true); // re-grant silently where Safari allows it
+  $("#tiltBtn").addEventListener("click", () => requestMotion(false));
+  // Tapping the sphere also asks, once.
+  $("#sky").addEventListener("pointerup", () => { if (!tilting && !store.get("tiltDenied", false)) requestMotion(false); });
+} else if ("DeviceOrientationEvent" in window) startTilt();
+function showTiltHint() {
+  if (needsPermission && !tilting && !store.get("tiltDenied", false) && !document.body.classList.contains("onboarding")) $("#tiltBtn").hidden = false;
+}
 
 // ---------- Space weather (NOAA, free public feed) ----------
 async function loadKp() {
@@ -180,7 +190,7 @@ function startOnboarding() {
     $("#revealSub").textContent = sub;
     showStep(4);
   };
-  ob.querySelector("[data-finish]").onclick = () => { ob.hidden = true; document.body.classList.remove("onboarding"); sky.resize(); renderHome(); };
+  ob.querySelector("[data-finish]").onclick = () => { requestMotion(false); ob.hidden = true; document.body.classList.remove("onboarding"); sky.resize(); renderHome(); setTimeout(showTiltHint, 1500); };
 }
 
 // ---------- Sheet ----------
@@ -532,7 +542,7 @@ $("#menuBtn").onclick = openMenu;
 document.addEventListener("click", e => { if (e.target.closest(".tip-link")) openTip(e); });
 document.addEventListener("visibilitychange", () => { if (!document.hidden) { applyPhase(); renderHome(); } });
 
-if (profile) { natal = natalChart(profile); sky.setNatal(natal.pos); renderHome(); }
+if (profile) { natal = natalChart(profile); sky.setNatal(natal.pos); renderHome(); setTimeout(showTiltHint, 800); }
 else startOnboarding();
 loadKp();
 
