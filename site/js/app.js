@@ -1,6 +1,6 @@
 import { CITIES, MOOD_WORDS } from "./data.js";
 import { buildDeck, consultSteps } from "./reading.js";
-import { pickBy, HOME_HEADLINES, HOME_SUPPORT, ASPECT_WORD, CLOSING_LINES } from "./voice.js";
+import { pickBy, HOME_HEADLINES, HOME_SUPPORT, ASPECT_WORD, CLOSING_LINES, weatherShort } from "./voice.js";
 import {
   natalChart, todaySignals, homeForecast, positions, writeReading, conditionOf, CONDITIONS, signOf, nakshatraOf, dayKey, moonPhase,
 } from "./astro.js";
@@ -20,7 +20,7 @@ const store = {
 let profile = store.get("profile", null);
 let entries = store.get("entries", []);
 let prefs = store.get("prefs", { phase: "auto", useHere: false, here: null, installAskedAt: 0 });
-let natal = null, kp = null, phaseOverride = null;
+let natal = null, kp = null, weather = null, phaseOverride = null;
 if (prefs.phase && prefs.phase !== "auto") { prefs.phase = "auto"; store.set("prefs", prefs); }
 
 function toast(msg, ms = 3200) {
@@ -113,6 +113,31 @@ async function loadKp() {
   } catch { /* offline or blocked: the reading simply skips space weather */ }
 }
 
+// ---------- Weather where you are (MET Norway, via our own tiny proxy) ----------
+// Sends rough coordinates only if you turned on "use where I am"; otherwise the server
+// uses its own city-level guess from the request and keeps nothing.
+async function loadWeather() {
+  const cached = store.get("weather", null);
+  if (cached && Date.now() - cached.at < 30 * 6e4 && cached.useHere === !!prefs.useHere) { weather = cached.w; renderHome(); return; }
+  try {
+    const q = prefs.useHere && prefs.here ? `?lat=${prefs.here.lat.toFixed(1)}&lon=${prefs.here.lon.toFixed(1)}` : "";
+    const r = await fetch(`/api/weather${q}`);
+    if (!r.ok) return;
+    const w = await r.json();
+    if (w.temp == null) return;
+    weather = w; store.set("weather", { at: Date.now(), useHere: !!prefs.useHere, w });
+    renderHome();
+  } catch { /* offline or not deployed: readings simply skip the weather */ }
+}
+
+// ---------- Anonymous counts: one ping per day per event, nothing that identifies you ----------
+function countOnce(e) {
+  const day = dayKey(), seen = store.get("counted", {});
+  if (seen[e] === day || /^(localhost|127\.)/.test(location.hostname)) return;
+  seen[e] = day; store.set("counted", seen);
+  try { fetch("/api/hit", { method: "POST", body: JSON.stringify({ e }), keepalive: true, headers: { "Content-Type": "application/json" } }).catch(() => { }); } catch { }
+}
+
 // ---------- Icons ----------
 const ICONS = {
   clear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/></svg>',
@@ -141,10 +166,39 @@ function renderHome() {
   // The astrology behind it, in small print.
   const top = sig.personal[0];
   const bits = [];
+  const ws = weatherShort(weather);
+  if (ws) bits.push(`Outside: ${ws}`);
   if (top) bits.push(`${top.t === "Sun" || top.t === "Moon" ? "The " + top.t : top.t} ${ASPECT_WORD[top.asp.name]} your natal ${top.n === "Ascendant" ? "rising sign" : top.n}`);
   bits.push(`Moon in ${sig.moonSign} and the Vedic mansion ${sig.moonNak.name}`);
   bits.push(`${sig.phase.name}, ${Math.round(sig.phase.illum * 100)}% lit`);
   $("#forecastTech").textContent = bits.join(" · ");
+}
+
+// ---------- Birthplace search ----------
+const normPlace = s => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+const placeShards = {};
+async function loadShard(key) {
+  if (!placeShards[key]) placeShards[key] = fetch(`/places/${key}.json`).then(r => { if (!r.ok) throw new Error("places"); return r.json(); }).catch(e => { delete placeShards[key]; throw e; });
+  return placeShards[key];
+}
+async function searchPlaces(raw) {
+  const q = normPlace(raw.split(",")[0]);
+  const key = /^[a-z]/.test(q) ? q[0] : "other";
+  let sh;
+  try { sh = await loadShard(key); } catch { return []; }
+  const major = new Set(CITIES.map(c => normPlace(c[0]) + "|" + c[1]));
+  const out = [];
+  for (const row of sh.c) {
+    const n = normPlace(row[0]);
+    if (!n.startsWith(q)) continue;
+    const region = sh.r[row[3]];
+    const country = region.split(", ").pop();
+    out.push({ name: row[0], region, lat: row[1] / 100, lon: row[2] / 100, tz: sh.t[row[4]],
+      score: (n === q ? 0 : 2) + (major.has(n + "|" + country) || CITIES.some(c => normPlace(c[0]) === n && region.includes(c[1].split(", ")[0])) ? -1 : 0) + n.length / 100 });
+    if (out.length > 400) break;
+  }
+  out.sort((a, b) => a.score - b.score || a.name.localeCompare(b.name));
+  return out.slice(0, 8);
 }
 
 // ---------- Onboarding ----------
@@ -157,7 +211,6 @@ let obEditing = false;
 function startOnboarding() {
   const ob = $("#onboard"); ob.hidden = false; document.body.classList.add("onboarding"); showStep(0);
   requestAnimationFrame(() => updateSlot());
-  $("#cityList").innerHTML = CITIES.map(c => `<option value="${esc(c[0])}, ${esc(c[1])}"></option>`).join("");
   const draft = {};
   ob.querySelector("[data-next]").onclick = () => showStep(1);
   $("#obNoTime").onchange = e => { $("#obTime").disabled = e.target.checked; if (e.target.checked) $("#obTime").value = ""; };
@@ -168,12 +221,35 @@ function startOnboarding() {
     if (!draft.birthDate) return toast("Add your birth date to continue.");
     showStep(2);
   };
+  // Birthplace search over every town in GeoNames, loaded a letter at a time.
+  let chosenPlace = null;
+  const cityInput = $("#obCity"), list = $("#placeList");
+  const showPlaces = items => {
+    list.innerHTML = items.map((p, i) => `<li role="option" id="pl${i}" data-i="${i}"><b>${esc(p.name)}</b><span>${esc(p.region)}</span></li>`).join("");
+    list.hidden = !items.length; cityInput.setAttribute("aria-expanded", String(!!items.length));
+    list._items = items;
+  };
+  let searchSeq = 0;
+  cityInput.oninput = async () => {
+    chosenPlace = null;
+    const q = cityInput.value;
+    const seq = ++searchSeq;
+    if (normPlace(q).length < 2) return showPlaces([]);
+    const res = await searchPlaces(q);
+    if (seq === searchSeq) showPlaces(res);
+  };
+  list.onclick = e => {
+    const li = e.target.closest("li"); if (!li) return;
+    chosenPlace = list._items[+li.dataset.i];
+    cityInput.value = `${chosenPlace.name}, ${chosenPlace.region}`;
+    showPlaces([]);
+    $("#cityHint").textContent = "Got it.";
+  };
   ob.querySelector('[data-step="2"]').onsubmit = e => {
     e.preventDefault();
-    const q = $("#obCity").value.trim().toLowerCase();
-    const c = CITIES.find(c => `${c[0]}, ${c[1]}`.toLowerCase() === q) || CITIES.find(c => c[0].toLowerCase() === q.split(",")[0].trim());
-    if (!c) { $("#cityHint").textContent = "That city isn't in the prototype list yet. Pick the nearest one from the suggestions."; return; }
-    Object.assign(draft, { city: c[0], lat: c[2], lon: c[3], tz: c[4] });
+    if (!chosenPlace && list._items && list._items.length === 1) chosenPlace = list._items[0];
+    if (!chosenPlace) { $("#cityHint").textContent = navigator.onLine === false ? "You're offline. Connect to the internet to search for your birthplace." : "Choose your town from the list as you type."; return; }
+    Object.assign(draft, { city: chosenPlace.name, region: chosenPlace.region, lat: chosenPlace.lat, lon: chosenPlace.lon, tz: chosenPlace.tz });
     showStep(3);
   };
   let pron = "";
@@ -228,12 +304,25 @@ function startOnboarding() {
     ob.hidden = true; document.body.classList.remove("onboarding");
     document.querySelector(".mood-tint").style.opacity = 0;
     renderHome();
-    const feel = draft.feel ?? 0.55, text = draft.words || "";
-    const r = writeReading({ feel, chips: [], text, natal, profile, kp });
-    const entry = { id: Date.now(), day: dayKey(), feel, chips: [], text: text.trim(), headline: r.headline, cond: r.cond, bottled: false };
-    entries.push(entry); store.set("entries", entries);
-    startReading(r, entry, { consult: true });
+    beginReading(draft.feel ?? 0.55, draft.words || "");
   };
+}
+
+// Three or more heavy check-ins on three days in a row (today included) → a gentle care card, once per streak.
+function heavyStreak() {
+  const heavyDays = new Set(entries.filter(e => e.feel < 0.42).map(e => e.day));
+  let n = 0; const d = new Date();
+  while (heavyDays.has(dayKey(d))) { n++; d.setDate(d.getDate() - 1); }
+  return n;
+}
+function beginReading(feel, text) {
+  const r = writeReading({ feel, chips: [], text, natal, profile, kp });
+  const entry = { id: Date.now(), day: dayKey(), feel, chips: [], text: text.trim(), headline: r.headline, cond: r.cond, bottled: false };
+  entries.push(entry); store.set("entries", entries);
+  let care = false;
+  if (heavyStreak() >= 3 && store.get("careShown", "") !== dayKey()) { care = true; store.set("careShown", dayKey()); }
+  countOnce("reading");
+  startReading(r, entry, { consult: true, care });
 }
 
 // ---------- Sheet ----------
@@ -292,11 +381,8 @@ function openCheckin() {
   feel.oninput = update; update();
   $("#readBtn").onclick = () => {
     const text = $("#words").value;
-    const r = writeReading({ feel: feel.value / 100, chips: [], text, natal, profile, kp });
-    const entry = { id: Date.now(), day: dayKey(), feel: feel.value / 100, chips: [], text: text.trim(), headline: r.headline, cond: r.cond, bottled: false };
-    entries.push(entry); store.set("entries", entries);
     closeSheet();
-    startReading(r, entry, { consult: true });
+    beginReading(feel.value / 100, text);
   };
 }
 
@@ -304,19 +390,19 @@ function openCheckin() {
 let reading = null;
 const CONSULT_STEP_MS = 950;
 
-function startReading(r, entry, { consult = true } = {}) {
+function startReading(r, entry, { consult = true, care = false } = {}) {
   document.body.classList.add("reading-mode");
   sky.clip = false;
   $("#stage").hidden = false;
   $("#cards").hidden = true; $("#cards").innerHTML = ""; $("#bars").innerHTML = "";
   sky.setSky(r.sig.sky);
   requestAnimationFrame(() => updateSlot());
-  reading = { r, entry, deck: buildDeck(r, natal, kp), index: -1 };
+  reading = { r, entry, deck: buildDeck(r, natal, kp, { weather, care }), index: -1 };
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (!consult || reduced) { $("#consult").hidden = true; showDeck(); return; }
 
   $("#consult").hidden = false;
-  const steps = consultSteps(r, natal, profile, kp);
+  const steps = consultSteps(r, natal, profile, kp, weather);
   const pairs = [
     ...r.sig.personal.slice(0, 6).map(s => [["sky", s.t], ["natal", s.n === "Ascendant" && natal.asc == null ? "Sun" : s.n]]),
     ...r.sig.collective.slice(0, 4).map(s => [["sky", s.t], ["sky", s.n]]),
@@ -372,6 +458,7 @@ function renderCard(c, i, r) {
       + rv(`<h2 class="card-title big">${esc(c.title)}</h2>`, d++)
       + (c.quote ? rv(`<p class="quote">${esc(c.quote)}</p>`, d++) : "")
       + rv(`<p class="lead">${esc(c.lead)}</p>`, d++)
+      + (c.weather ? rv(`<p class="weather-line"><span class="pill">Outside: ${esc(c.weather.short)}</span> ${esc(c.weather.line)}</p>`, d++) : "")
       + rv(`<button class="tap-big" type="button" data-act="next"><span>Tap to continue</span><span class="chevs" aria-hidden="true"><i>›</i><i>›</i><i>›</i></span></button>`, d++);
   } else if (c.type === "transit") {
     inner = kicker
@@ -391,6 +478,12 @@ function renderCard(c, i, r) {
       + rv(`<div class="crowd-big"><strong data-count="${c.crowd.count}">0</strong><span>people near you logged a ${esc(c.crowd.label)} day too</span></div>`, d++)
       + rv(`<p class="lead">${esc(c.lead)}</p>`, d++)
       + rv(techBlock(c.tech), d++);
+  } else if (c.type === "care") {
+    inner = kicker
+      + rv(`<h2 class="card-title">${esc(c.title)}</h2>`, d++)
+      + rv(`<p class="lead">${esc(c.lead)}</p>`, d++)
+      + rv(`<div class="care-help"><p>${esc(c.more)}</p><a class="primary care-btn" href="${esc(c.help.href)}"${c.help.href.startsWith("http") ? ' target="_blank" rel="noopener"' : ""}>${esc(c.help.label)}</a><small>${esc(c.help.note)}</small></div>`, d++)
+      + rv(`<p class="care-skip">Tap anywhere to keep going.</p>`, d++);
   } else if (c.type === "close") {
     const saved = reading.entry.bottled;
     inner = kicker
@@ -761,7 +854,7 @@ function openMenu() {
     <div class="menu-list">
       <button class="menu-item" id="mShare">${ic.share}<span>Share Æther<small>Send the app to a friend</small></span></button>
       ${isStandalone() ? "" : `<button class="menu-item" id="mInstall">${ic.home}<span>Add to home screen<small>Open it full-screen, like an app</small></span></button>`}
-      <button class="menu-item" id="mHere">${ic.pin}<span>${prefs.useHere ? "Colour the sky for where I am" : "Use where I am for the sky colours"}<small>${prefs.useHere ? "On. Tap to follow your time zone instead" : "Off. Colours follow sunrise and sunset in your time zone"}</small></span></button>
+      <button class="menu-item" id="mHere">${ic.pin}<span>${prefs.useHere ? "Colour the sky for where I am" : "Use where I am for colours and weather"}<small>${prefs.useHere ? "On. Tap to follow your time zone instead" : "Off. Colours follow your time zone; weather uses a rough guess of your city"}</small></span></button>
       <div class="menu-item" style="display:block;cursor:default">Preview time of day<small>Try each look for a moment. Auto follows the real Sun where you are.</small>
         <div class="chips" id="mPhase" style="margin-top:10px">${phases.map(p => `<button type="button" class="chip" aria-pressed="${p === cur}" data-v="${p}">${p}</button>`).join("")}</div>
       </div>
@@ -771,7 +864,7 @@ function openMenu() {
       <a class="menu-item" href="/privacy.html">${ic.pin.replace('<path d="M12 21s-6-5.3-6-11a6 6 0 0 1 12 0c0 5.7-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/>', '<path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"/>')}<span>Privacy Policy</span></a>
       <a class="menu-item" href="/terms.html">${ic.edit.replace('<path d="M4 20h4L19 9l-4-4L4 16z"/>', '<path d="M7 3h8l4 4v14H7z"/><path d="M10 12h6M10 16h6"/>')}<span>Terms of Use</span></a>
     </div>
-    <p class="credits">Planet positions are calculated on your phone with Astronomy Engine (open source). Space weather comes from NOAA's Space Weather Prediction Center. Lines from the traditions are paraphrased in our own words. Æther is for reflection, not prediction.</p>
+    <p class="credits">Planet positions are calculated on your phone with Astronomy Engine (open source). Space weather comes from NOAA's Space Weather Prediction Center. Local weather is from MET Norway (CC BY 4.0). Birthplaces come from GeoNames (CC BY 4.0). Lines from the traditions are paraphrased in our own words. Æther is for reflection, not prediction.</p>
   `);
   $("#mShare").onclick = shareApp;
   const inst = $("#mInstall"); if (inst) inst.onclick = openInstall;
@@ -783,11 +876,11 @@ function openMenu() {
     applyPhase();
   };
   $("#mHere").onclick = () => {
-    if (prefs.useHere) { prefs.useHere = false; store.set("prefs", prefs); applyPhase(); return openMenu(); }
+    if (prefs.useHere) { prefs.useHere = false; store.set("prefs", prefs); applyPhase(); loadWeather(); return openMenu(); }
     if (!navigator.geolocation) return toast("Location isn't available in this browser.");
     navigator.geolocation.getCurrentPosition(p => {
       prefs.useHere = true; prefs.here = { lat: +p.coords.latitude.toFixed(2), lon: +p.coords.longitude.toFixed(2) };
-      store.set("prefs", prefs); applyPhase(); openMenu(); toast("The sky now follows the Sun where you are.");
+      store.set("prefs", prefs); applyPhase(); loadWeather(); openMenu(); toast("The sky now follows the Sun where you are.");
     }, () => toast("Location wasn't shared. The sky keeps following your time zone."), { maximumAge: 36e5, timeout: 10000 });
   };
   $("#mEdit").onclick = () => { closeSheet(); obEditing = true; startOnboarding(); showStep(1); };
@@ -814,6 +907,8 @@ document.addEventListener("visibilitychange", () => { if (!document.hidden) { ap
 if (profile) { natal = natalChart(profile); sky.setNatal(natal.pos, natal.asc); renderHome(); }
 else startOnboarding();
 loadKp();
+loadWeather();
+countOnce("open");
 
 // ---------- Opening animation: every launch ----------
 function playIntro() {

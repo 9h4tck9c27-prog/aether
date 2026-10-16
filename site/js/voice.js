@@ -212,3 +212,84 @@ export const OPEN_LINES = {
   mixed: ["Let's see what the sky is mixing for you.", "Here's what's moving above you today."],
   golden: ["Let's see what's lighting you up.", "Here's what's shining on you today."],
 };
+
+// ---------- Weather where you are (MET Norway) ----------
+// Groups MET Norway symbol codes into a handful of moods.
+export function weatherKind(symbol) {
+  const s = symbol || "";
+  if (/thunder/.test(s)) return "storm";
+  if (/snow|sleet/.test(s)) return "snow";
+  if (/rain/.test(s)) return "rain";
+  if (/fog/.test(s)) return "fog";
+  if (/cloudy/.test(s) && !/partly/.test(s)) return "cloud";
+  if (/partly|fair/.test(s)) return "fair";
+  if (/clear/.test(s)) return "clear";
+  return "cloud";
+}
+export const WEATHER_WORD = { storm: "thunder about", snow: "snow", rain: "rain", fog: "fog", cloud: "cloudy", fair: "some sun, some cloud", clear: "clear skies" };
+// One gentle line that ties the weather outside to the day inside. {bucket} → kind → lines.
+export const WEATHER_LINES = {
+  heavy: {
+    storm: ["There's thunder outside too. Storms are loud, and they pass.", "Even the weather is restless today. You don't have to match it."],
+    snow: ["Snow slows everything down. Let it slow you down too.", "Everything gets quieter under snow. You're allowed to get quieter."],
+    rain: ["It's raining where you are. Some days the sky cries along with you.", "Rain outside. A good excuse for a slower, softer day."],
+    fog: ["Fog outside, fog inside. You only need to see the next step.", "It's hard to see far today. That's alright. Close is enough."],
+    cloud: ["A grey sky overhead. Grey isn't forever; it's just today.", "Clouds over you today. The Sun is still up there, holding its place."],
+    fair: ["Some sun is getting through outside. Let a little of it reach you.", "Patchy sun today. Stand in it for a minute if you can."],
+    clear: ["The sky is clear where you are, even if you aren't. Step out and look up for a moment.", "Clear skies outside. Some fresh air might carry a bit of the weight."],
+  },
+  mixed: {
+    storm: ["Thunder in the forecast. A good day to keep plans flexible.", "Stormy outside. Keep somewhere cosy in reach."],
+    snow: ["Snow where you are. The world gets softer, and so can you.", "Snow outside. Warm drinks and slow mornings are recommended."],
+    rain: ["Rain where you are. Good weather for thinking things through.", "A rainy one outside. Bring an umbrella, and a bit of patience."],
+    fog: ["Foggy out there. Take today one step at a time.", "Fog outside. Things will come into focus as the day goes on."],
+    cloud: ["Cloudy overhead. A steady, unhurried sort of day.", "Grey skies outside. Easy does it."],
+    fair: ["A mix of sun and cloud where you are, a bit like the day itself.", "Sun and cloud taking turns outside. You can take turns too."],
+    clear: ["Clear skies where you are. A good day to get outside for a bit.", "The weather is on your side today. Clear and open."],
+  },
+  golden: {
+    storm: ["Thunder outside, warmth inside. Your good day doesn't need good weather.", "Storms outside can't touch the glow you're carrying."],
+    snow: ["Snow outside and a bright day inside. Lovely combination.", "Snow where you are. Something about today feels like a fresh page."],
+    rain: ["Rain outside, but you're carrying your own sunshine today.", "Rain where you are. Dance in it, if you feel like it."],
+    fog: ["Fog outside, but you can see clearly today.", "A soft, foggy day outside to match a soft, happy one inside."],
+    cloud: ["Clouds overhead, but your day is bright anyway.", "Grey outside, golden inside."],
+    fair: ["Sun breaking through where you are. Fitting, for a day like this.", "Sun and cloud outside, and mostly sun inside."],
+    clear: ["Clear skies where you are, and inside too. Soak it up.", "The sky is clear and so are you. Enjoy every bit of it."],
+  },
+};
+// Fahrenheit for the US and a couple of others; Celsius everywhere else.
+export function useFahrenheit() {
+  try {
+    const loc = new Intl.Locale(navigator.language || "en-US");
+    const region = loc.region || (loc.maximize && loc.maximize().region);
+    return ["US", "LR", "MM", "BS", "BZ", "KY", "PW"].includes(region);
+  } catch { return false; }
+}
+export function weatherShort(w) {
+  if (!w || w.temp == null) return "";
+  const f = useFahrenheit();
+  const t = Math.round(f ? w.temp * 9 / 5 + 32 : w.temp);
+  return `${t}°${f ? "F" : "C"}, ${WEATHER_WORD[weatherKind(w.symbol)]}`;
+}
+
+// ---------- After a few heavy days in a row ----------
+export const CARE = {
+  kicker: "A gentle check-in",
+  title: "You've had a few heavy days in a row",
+  lead: "That's a lot to carry, and you don't have to carry it alone. The sky is good company, but people are better. If you can, tell someone you trust how it's been.",
+  more: "If it ever feels like too much, talking to someone right now can really help. It's free and confidential.",
+};
+// Crisis lines by country, chosen from the phone's language/region settings.
+export function careLine() {
+  let region = "";
+  try { const l = new Intl.Locale(navigator.language || ""); region = l.region || ""; } catch { }
+  let tz = "";
+  try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch { }
+  if (region === "US" || (!region && /^America\/(New_York|Chicago|Denver|Los_Angeles|Phoenix|Anchorage|Detroit|Indiana)/.test(tz)))
+    return { label: "Call or text 988", href: "tel:988", note: "988 Suicide & Crisis Lifeline, any time, day or night." };
+  if (region === "CA") return { label: "Call or text 988", href: "tel:988", note: "988 Suicide Crisis Helpline, any time, day or night." };
+  if (["GB", "IE"].includes(region) || /^Europe\/(London|Dublin)/.test(tz))
+    return { label: "Call Samaritans: 116 123", href: "tel:116123", note: "Free, any time, day or night." };
+  if (region === "AU" || /^Australia\//.test(tz)) return { label: "Call Lifeline: 13 11 14", href: "tel:131114", note: "Any time, day or night." };
+  return { label: "Find a helpline near you", href: "https://findahelpline.com", note: "Free, confidential support in your country." };
+}

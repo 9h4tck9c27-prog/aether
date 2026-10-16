@@ -549,3 +549,21 @@ body.introing .legal-rail, body.onboarding .legal-rail { opacity: 0; pointer-eve
 .share-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .text-btn { background: none; border: 0; color: var(--ink-soft); font-size: 14.5px; text-decoration: underline; text-underline-offset: 3px; padding: 8px; cursor: pointer; }
 .ghost[disabled] { opacity: .6; }
+
+/* Birthplace suggestions */
+.place-list { list-style: none; margin: -6px 0 12px; padding: 6px; border-radius: 16px; background: var(--surface-strong); border: 1px solid var(--line); max-height: 40svh; overflow-y: auto; box-shadow: 0 16px 40px -18px rgba(0, 0, 0, .5); }
+.place-list li { display: flex; flex-direction: column; gap: 2px; padding: 11px 12px; border-radius: 11px; cursor: pointer; }
+.place-list li:active, .place-list li:hover { background: var(--surface); }
+.place-list b { font-weight: 600; font-size: 16px; }
+.place-list span { font-size: 13px; color: var(--ink-faint); }
+
+/* Weather on the first card */
+.weather-line { font-size: 15px; line-height: 1.45; color: var(--ink-soft, var(--ink)); opacity: .9; margin: 4px 0 18px; }
+.weather-line .pill { margin: 0 6px 6px 0; font-size: 12px; padding: 4px 10px; vertical-align: 1px; }
+
+/* Care card: gentle, never in the way */
+.care-help { margin: 6px 0 14px; padding: 16px; border-radius: 18px; background: color-mix(in srgb, var(--ink) 8%, transparent); border: 1px solid var(--line); }
+.care-help p { margin: 0 0 12px; font-size: 15px; line-height: 1.45; }
+.care-help .care-btn { display: flex; justify-content: center; align-items: center; text-decoration: none; width: 100%; min-height: 48px; }
+.care-help small { display: block; margin-top: 8px; font-size: 12.5px; opacity: .75; text-align: center; }
+.care-skip { font-size: 13px; opacity: .65; margin: 0; }

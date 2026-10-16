@@ -98,9 +98,9 @@
     </form>
     <form class="ob-step" data-step="2" hidden>
       <h2>Where were you born?</h2>
-      <label class="field"><span>City</span><input type="text" id="obCity" list="cityList" autocomplete="off" placeholder="Start typing a city" required></label>
-      <datalist id="cityList"></datalist>
-      <p class="hint" id="cityHint">The prototype knows about 120 cities. The full app will know every town.</p>
+      <label class="field"><span>Town or city</span><input type="text" id="obCity" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Start typing your birthplace" role="combobox" aria-autocomplete="list" aria-controls="placeList" aria-expanded="false"></label>
+      <ul class="place-list" id="placeList" role="listbox" hidden></ul>
+      <p class="hint" id="cityHint">Pick your town from the list. If it's tiny, choose the nearest town.</p>
       <button class="primary" type="submit">Next</button>
     </form>
     <form class="ob-step" data-step="3" hidden>

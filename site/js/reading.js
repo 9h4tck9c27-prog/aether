@@ -5,7 +5,7 @@ import { PLANET_GLYPHS, NAKSHATRA_LORE } from "./data.js";
 import {
   pickBy, TRANSIT_HEADLINES, TRANSIT_PLAIN, FEEL_BRIDGE, PLAIN_PLANET, PLAIN_NATAL, ASPECT_DEFS, ASPECT_WORD,
   NATAL_DEF, RISING_DEF, timingPill, NAKSHATRA_PLAIN, togetherPlain, spaceWeatherPlain, CLOSING_LINES,
-  THEME_PLAIN, OPEN_LINES, PLAIN_SINGULAR,
+  THEME_PLAIN, OPEN_LINES, PLAIN_SINGULAR, WEATHER_LINES, weatherKind, weatherShort, CARE, careLine,
 } from "./voice.js";
 
 const MIN_CROWD = 25;
@@ -92,7 +92,7 @@ function closingLine(r) {
   return pickBy(CLOSING_LINES[r.bucket], seed);
 }
 
-export function buildDeck(r, natal, kp) {
+export function buildDeck(r, natal, kp, { weather = null, care = false } = {}) {
   const seed = Math.floor(r.now.getTime() / 36e5);
   const theme = (r.themes || [])[0];
   const cards = [{
@@ -101,12 +101,17 @@ export function buildDeck(r, natal, kp) {
     title: r.headline,
     quote: r.quote,
     lead: theme ? THEME_PLAIN[theme][r.bucket] : pickBy(OPEN_LINES[r.bucket], seed),
+    weather: weather && weather.temp != null
+      ? { short: weatherShort(weather), line: pickBy(WEATHER_LINES[r.bucket][weatherKind(weather.symbol)], seed) }
+      : null,
     focus: { wide: true, natalGlow: true },
   }];
   for (const s of r.ranked.slice(0, 2)) cards.push(transitCard(s, r, natal));
   cards.push(moonCard(r));
   // Only show "people near you" when there are enough real check-ins to count.
   if (r.crowd && r.crowd.count >= MIN_CROWD) cards.push(togetherCard(r, kp));
+  // A few heavy days in a row: a gentle, skippable note with a way to reach a real person.
+  if (care) cards.push({ type: "care", ...CARE, help: careLine(), focus: { wide: true } });
   const line = closingLine(r);
   const links = [
     ...r.ranked.slice(0, 3).map(s => [["sky", s.t], ["natal", s.n]]),
@@ -117,7 +122,7 @@ export function buildDeck(r, natal, kp) {
 }
 
 // Steps shown while the sky is "consulting". Plain words, real details.
-export function consultSteps(r, natal, profile, kp) {
+export function consultSteps(r, natal, profile, kp, weather = null) {
   const aspects = r.sig.personal.length + r.sig.collective.length;
   return [
     "Finding every planet, right now",
@@ -125,6 +130,7 @@ export function consultSteps(r, natal, profile, kp) {
     `Measuring the angles between them: ${aspects} ${aspects === 1 ? "connection" : "connections"} found`,
     `Following the Moon into ${r.sig.moonNak.name}`,
     kp != null ? "Checking the Sun's weather" : "Listening to the quiet between the stars",
+    ...(weather && weather.temp != null ? ["Looking out the window where you are"] : []),
     "Putting it into words",
   ];
 }

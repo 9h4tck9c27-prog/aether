@@ -1,0 +1,2 @@
+Place names and coordinates: GeoNames (geonames.org), CC BY 4.0, via the cities.json package.
+Time zones: @photostructure/tz-lookup (CC0). Country names: countries-list (MIT).

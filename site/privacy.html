@@ -15,7 +15,7 @@
   <h1>Privacy Policy</h1>
   <p class="meta">Effective October 16, 2026</p>
 
-  <div class="summary"><p><strong>The short version:</strong> your birth details, check-ins and the words you write stay on your phone. We never receive them. Æther has no accounts, no ads, no analytics and no tracking, and we don't sell or share personal information.</p></div>
+  <div class="summary"><p><strong>The short version:</strong> your birth details, check-ins and the words you write stay on your phone. We never receive them. Æther has no accounts, no ads and no tracking, and we don't sell or share personal information. The only things the app sends are a request for your local weather and an anonymous daily "someone opened the app" tally, neither of which identifies you.</p></div>
 
   <p>This policy explains how Æther (the "app"), operated by Aether App ("we", "us"), handles information when you use the app at its website or from your home screen.</p>
 
@@ -24,31 +24,38 @@
   <ul>
     <li>Your birth date, birth time (if you give it) and birth city</li>
     <li>The name and pronouns you choose to give, if any</li>
-    <li>Your check-ins: how the day felt, the feelings you picked and anything you write</li>
+    <li>Your check-ins: how the day felt and anything you write</li>
     <li>Your settings, such as the time-of-day colours and whether you allowed motion</li>
   </ul>
   <p>All calculations, including your chart, transits and readings, happen on your device. This information is not sent to us or to anyone else, and we have no way to see it.</p>
 
+  <h2>Local weather</h2>
+  <p>To mention the weather where you are, the app asks our server for a forecast. If you've turned on "Use where I am" in the menu, the app sends your location rounded to about 10 km. If you haven't, our server uses the approximate city that our host, Netlify, works out from your connection, the same way any website can. Our server passes only the rounded coordinates to <strong>MET Norway</strong> (the Norwegian Meteorological Institute) to get the forecast, and sends the forecast back to you. We don't store your location or your IP address, and MET Norway never sees your IP address. Your phone keeps the last forecast for 30 minutes so it doesn't have to ask again.</p>
+
+  <h2>Anonymous visit counts</h2>
+  <p>So we know whether people are finding Æther useful, the app sends a tiny message at most once a day saying "the app was opened" and, if you read your sky, "a reading was made". Our server adds one to that day's total and keeps nothing else: no IP address, no device ID, no cookie, no location, no mood and none of your words. The totals are just numbers per day, such as "312 opens on October 20".</p>
+
   <h2>What we don't collect</h2>
-  <p>We don't ask you to create an account. We don't use cookies, advertising, analytics, tracking pixels or fingerprinting. We don't sell, rent or share personal information, and we don't use it for targeted advertising.</p>
+  <p>We don't ask you to create an account. We don't use cookies, advertising, third-party analytics, tracking pixels or fingerprinting. We don't sell, rent or share personal information, and we don't use it for targeted advertising.</p>
 
   <h2>Phone sensors and location</h2>
   <ul>
     <li><strong>Motion:</strong> if you allow it, the app uses your phone's tilt to turn the 3D sky. Motion readings are used on the device and are never stored or sent.</li>
-    <li><strong>Location:</strong> only if you turn on "Use where I am for the sky colours" in the menu, the app asks your browser for your location to match the colours to your local sunrise and sunset. It keeps a rounded version (about 1 km) on your device. It is not sent to us.</li>
+    <li><strong>Location:</strong> only if you turn on "Use where I am" in the menu, the app asks your browser for your location to match the colours to your local sunrise and sunset. It keeps a rounded version (about 1 km) on your device. For the weather, only a coarser version (about 10 km) is sent, as described above.</li>
   </ul>
 
   <h2>Services that receive basic technical information</h2>
   <p>Like any website, a few services receive standard technical information, such as your IP address and browser type, when your phone connects to them:</p>
   <ul>
-    <li><strong>Netlify</strong> hosts the app and delivers its files. Netlify may keep short-term server logs for security and reliability. See <a href="https://www.netlify.com/privacy/">Netlify's privacy policy</a>.</li>
+    <li><strong>Netlify</strong> hosts the app, runs our small weather and visit-count server code, and delivers the app's files. Netlify may keep short-term server logs for security and reliability. See <a href="https://www.netlify.com/privacy/">Netlify's privacy policy</a>.</li>
+    <li><strong>MET Norway</strong> supplies weather forecasts. It receives only rounded coordinates from our server, never anything from your phone directly. Weather data is used under the Creative Commons Attribution 4.0 licence.</li>
     <li><strong>NOAA Space Weather Prediction Center</strong>, a US government service, supplies the live space weather. Your phone fetches it directly. See <a href="https://www.noaa.gov/protecting-your-privacy">NOAA's privacy policy</a>.</li>
     <li><strong>Ko-fi</strong> handles tips, only if you choose to leave one. Ko-fi and its payment providers process your payment details; we never see your card details. See <a href="https://more.ko-fi.com/privacy">Ko-fi's privacy policy</a>.</li>
   </ul>
-  <p>The app's fonts and code are served from our own site, so no font or code provider sees your visit.</p>
+  <p>The app's fonts, code and the list of birthplaces (from GeoNames) are served from our own site, so no other provider sees your visit or what you search for.</p>
 
   <h2>Sharing</h2>
-  <p>When you tap "Share this sky", the app makes an image on your phone and opens your phone's share sheet. You decide where it goes. The image shows the day's headline and sky; it does not include the words you wrote.</p>
+  <p>When you tap "Share", the app makes an image of your reading on your phone and opens your phone's share sheet. You decide where it goes. The image shows the date, the reading's headlines and the sky; it does not include the words you wrote, your birth details or the weather.</p>
 
   <h2>Backups and deleting your data</h2>
   <p>"Save a backup" in your sky journal creates a file on your device that you control. To delete everything, open the menu and choose "Erase everything on this phone", or clear this site's data in your browser settings. Because we don't hold your data, we can't recover it for you.</p>
@@ -60,7 +67,7 @@
   <p>Depending on where you live (for example in California, the UK or the EU), you may have rights to access, correct or delete personal information, or to object to its use. Because Æther keeps your information only on your device, you can view, change or delete it yourself at any time. If you have a question about your rights, contact us below.</p>
 
   <h2>Changes to this policy</h2>
-  <p>We may update this policy as the app grows. If we ever add a feature that sends information from your phone, such as anonymous mood counts for "people near you", we will update this policy and explain what is collected before that feature goes live. The effective date above shows the latest version.</p>
+  <p>We may update this policy as the app grows. If we ever add a feature that sends more information from your phone, such as anonymous mood counts for "people near you", we will update this policy and explain what is collected before that feature goes live. The effective date above shows the latest version.</p>
 
   <h2>Contact</h2>
   <p>Aether App<br><a href="mailto:aetherapp@icloud.com">aetherapp@icloud.com</a></p>
