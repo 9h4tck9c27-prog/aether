@@ -22,3 +22,9 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
+
+# Short, file-like links for rendered social posts (served by the social function).
+[[redirects]]
+  from = "/m/*"
+  to = "/api/social/media/:splat"
+  status = 200

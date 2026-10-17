@@ -30,7 +30,12 @@ def instagram_channel():
     raise RuntimeError("Buffer: no Instagram channel connected. In Buffer, connect @_aether.aether_ first.")
 
 
+def file_url(u):
+    return u.replace("/api/social/media/", "/m/")
+
+
 def schedule(post, urls, channel_id, caption):
+    urls = [file_url(u) for u in urls]
     when = datetime.datetime.fromisoformat(f"{post['date']}T{post['time']}").replace(tzinfo=LONDON).astimezone(datetime.timezone.utc)
     fmt = post["format"]
     if fmt == "reel":
