@@ -24,7 +24,9 @@ export default async (req, context) => {
         "Content-Type": res.metadata?.type || "application/octet-stream",
         "Content-Length": String(res.data.byteLength),
         "Accept-Ranges": "none",
-        "Cache-Control": "public, max-age=86400",
+        "Cache-Control": "public, max-age=600",
+        // Don't keep copies at Netlify's edge: a re-uploaded file must be served fresh straight away.
+        "Netlify-CDN-Cache-Control": "no-store",
       };
       return new Response(req.method === "HEAD" ? null : res.data, { headers });
     }
