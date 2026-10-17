@@ -29,6 +29,8 @@ def ensure_plan(monday):
             print("Plan has errors, using the automatic plan instead:", *errs, sep="\n  ")
             plan, source = None, "automatic (the creative director's plan had errors)"
     if not plan:
+        rejected = load_json(path)
+        if rejected: save_json(DATA / "plans" / f"{monday}.rejected.json", rejected)   # keep the original for review
         plan = fallback.make(monday); source = source if source != "creative director" else "automatic (no plan from the creative director)"
         save_json(path, plan)
     return plan, source
