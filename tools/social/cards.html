@@ -1,0 +1,177 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face { font-family: "Fraunces"; font-style: normal; font-weight: 100 900; src: url("../../site/fonts/fraunces-latin-full-normal.woff2") format("woff2"); }
+@font-face { font-family: "Fraunces"; font-style: italic; font-weight: 100 900; src: url("../../site/fonts/fraunces-latin-full-italic.woff2") format("woff2"); }
+@font-face { font-family: "Figtree"; font-weight: 300 900; src: url("../../site/fonts/figtree-latin-wght-normal.woff2") format("woff2"); }
+body { margin: 0; background: transparent; }
+canvas { display: block; }
+</style></head>
+<body>
+<script>
+
+
+const BRAND_DARK = [[184,164,255],[158,230,212],[255,184,154],[247,200,232]];
+const BRAND_LIGHT = [[106,82,209],[42,150,132],[214,108,72],[190,84,150]];
+let BRAND = BRAND_DARK;
+function brand(t) {
+  t = ((t % 1) + 1) % 1 * 4; const i = Math.floor(t), f = t - i, a = BRAND[i], b = BRAND[(i + 1) % 4];
+  const s = f * f * (3 - 2 * f);
+  return `rgb(${a.map((v, k) => Math.round(v + (b[k] - v) * s)).join(",")})`;
+}
+function ring(g, cx, cy, rx, ry, rot, w, alpha, off) {
+  const N = 240;
+  g.save(); g.translate(cx, cy); g.rotate(rot); g.lineWidth = w; g.lineCap = "round"; g.globalAlpha = alpha;
+  for (let i = 0; i < N; i++) {
+    const a0 = i / N * Math.PI * 2, a1 = (i + 1.4) / N * Math.PI * 2;
+    g.strokeStyle = brand(i / N + off); g.beginPath();
+    g.ellipse(0, 0, rx, ry, 0, a0, a1); g.stroke();
+  }
+  g.restore();
+}
+function glow(g, x, y, r, col = "255,255,255", a = 1) {
+  const gr = g.createRadialGradient(x, y, 0, x, y, r);
+  gr.addColorStop(0, `rgba(${col},${a})`); gr.addColorStop(0.25, `rgba(${col},${a * 0.7})`); gr.addColorStop(1, `rgba(${col},0)`);
+  g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+}
+function sphere(g, cx, cy, R, detail = true) {
+  const halo = g.createRadialGradient(cx, cy, 0, cx, cy, R * 1.35);
+  halo.addColorStop(0, "rgba(184,164,255,.35)"); halo.addColorStop(1, "rgba(184,164,255,0)");
+  g.fillStyle = halo; g.beginPath(); g.arc(cx, cy, R * 1.35, 0, 7); g.fill();
+  ring(g, cx, cy, R * 0.98, R * 0.98, 0, R * 0.018, 0.45, 0.55);              // meridian circle
+  ring(g, cx, cy, R * 0.34, R * 0.98, 0, R * 0.016, 0.5, 0.85);               // meridian seen edge-on
+  ring(g, cx, cy, R, R * 0.36, 0.42, R * 0.022, 0.6, 0.3);                    // equator
+  ring(g, cx, cy, R, R * 0.36, -0.2, R * 0.05, 1, 0);                         // ecliptic, the hero ring
+  if (detail) {
+    const planets = [[0.4, 0.09, "255,217,168"], [2.3, 0.07, "255,194,214"], [3.6, 0.06, "158,230,212"], [5.2, 0.075, "247,242,251"]];
+    for (const [a, s, c] of planets) {
+      const x = Math.cos(a) * R, y = Math.sin(a) * R * 0.36;
+      const px = cx + x * Math.cos(-0.2) - y * Math.sin(-0.2), py = cy + x * Math.sin(-0.2) + y * Math.cos(-0.2);
+      glow(g, px, py, R * s * 2.2, c, 1);
+    }
+  }
+  glow(g, cx, cy, R * 0.32, "247,242,251", 1);
+}
+function background(g, w, h) {
+  const bg = g.createRadialGradient(w * 0.5, h * 0.42, 0, w * 0.5, h * 0.5, Math.max(w, h) * 0.75);
+  bg.addColorStop(0, "#35225e"); bg.addColorStop(0.55, "#1C1230"); bg.addColorStop(1, "#0f0820");
+  g.fillStyle = bg; g.fillRect(0, 0, w, h);
+}
+function stars(g, w, h, n, seed = 7) {
+  let s = seed; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < n; i++) { g.fillStyle = `rgba(255,255,255,${rnd() * 0.6 + 0.15})`; g.beginPath(); g.arc(rnd() * w, rnd() * h, rnd() * Math.max(w, h) / 900 + 0.4, 0, 7); g.fill(); }
+}
+
+const INK = "#F7F2FB", DEEP = "#1C1230";
+function iris(g, x0, x1) { const gr = g.createLinearGradient(x0, 0, x1, 0); [["#B8A4FF", 0], ["#9EE6D4", .4], ["#FFB89A", .75], ["#F7C8E8", 1]].forEach(([c, s]) => gr.addColorStop(s, c)); return gr; }
+function vgrad(g, w, h, stops) { const gr = g.createLinearGradient(0, 0, 0, h); stops.forEach(([c, s]) => gr.addColorStop(s, c)); g.fillStyle = gr; g.fillRect(0, 0, w, h); }
+function warmGlow(g, w, h, y = 1.05, a = .42) { const r = g.createRadialGradient(w / 2, h * y, 0, w / 2, h * y, Math.max(w, h) * .8); r.addColorStop(0, `rgba(255,184,154,${a})`); r.addColorStop(1, "rgba(255,184,154,0)"); g.fillStyle = r; g.fillRect(0, 0, w, h); }
+function lightSphere(g, cx, cy, R) {
+  BRAND = BRAND_LIGHT;
+  const halo = g.createRadialGradient(cx, cy, 0, cx, cy, R * 1.3); halo.addColorStop(0, "rgba(184,164,255,.35)"); halo.addColorStop(1, "rgba(184,164,255,0)");
+  g.fillStyle = halo; g.beginPath(); g.arc(cx, cy, R * 1.3, 0, 7); g.fill();
+  ring(g, cx, cy, R * 0.98, R * 0.98, 0, R * 0.018, 0.45, 0.55);
+  ring(g, cx, cy, R * 0.34, R * 0.98, 0, R * 0.016, 0.5, 0.85);
+  ring(g, cx, cy, R, R * 0.36, 0.42, R * 0.022, 0.6, 0.3);
+  ring(g, cx, cy, R, R * 0.36, -0.2, R * 0.05, 1, 0);
+  const planets = [[0.4, 0.07, "229,140,80"], [2.3, 0.055, "214,84,140"], [3.6, 0.05, "42,150,132"], [5.2, 0.06, "106,82,209"]];
+  for (const [a, s, c] of planets) { const x = Math.cos(a) * R, y = Math.sin(a) * R * 0.36; glow(g, cx + x * Math.cos(-0.2) - y * Math.sin(-0.2), cy + x * Math.sin(-0.2) + y * Math.cos(-0.2), R * s * 2.2, c, 1); }
+  glow(g, cx, cy, R * 0.3, "106,82,209", .9);
+  BRAND = BRAND_DARK;
+}
+function text(g, s, x, y, font, fill, align = "center") { g.font = font; g.fillStyle = fill; g.textAlign = align; g.fillText(s, x, y); }
+
+
+// ---------- Social cards: one spec in, one canvas out ----------
+function wrap(g, txt, maxW) {
+  const words = String(txt).split(/\s+/), lines = []; let cur = "";
+  for (const w of words) { const t = cur ? cur + " " + w : w; if (g.measureText(t).width > maxW && cur) { lines.push(cur); cur = w; } else cur = t; }
+  if (cur) lines.push(cur); return lines;
+}
+// Fit text into a box: shrink until it fits in maxLines and the height.
+function fitText(g, txt, { font, size, min = 28, maxW, maxH, lh = 1.15, maxLines = 6 }) {
+  for (let s = size; s >= min; s -= 2) {
+    g.font = font.replace("{s}", s);
+    const lines = wrap(g, txt, maxW);
+    if (lines.length <= maxLines && lines.length * s * lh <= maxH) return { lines, s };
+  }
+  g.font = font.replace("{s}", min); return { lines: wrap(g, txt, maxW), s: min };
+}
+function drawLines(g, f, x, y, lh, align = "left", fill = INK) {
+  g.textAlign = align; g.fillStyle = fill;
+  f.lines.forEach((l, i) => g.fillText(l, x, y + i * f.s * lh));
+  return y + f.lines.length * f.s * lh;
+}
+function footer(g, w, h, n, total) {
+  text(g, "æther", 90, h - 80, 'italic 400 46px "Fraunces"', "rgba(247,242,251,.85)", "left");
+  if (total > 1) text(g, `${n} / ${total}`, w - 90, h - 84, '500 28px "Figtree"', "rgba(247,242,251,.6)", "right");
+}
+function ground(g, w, h, look, seed) {
+  if (look === "dusk") { vgrad(g, w, h, [["#33245e", 0], ["#5d3b7c", .6], ["#c9867f", 1]]); stars(g, w, h * .7, 120, seed); }
+  else { background(g, w, h); stars(g, w, h, 200, seed); warmGlow(g, w, h, 1.05, .3); }
+}
+const RENDER = {
+  cover(g, w, h, s) {
+    ground(g, w, h, s.look, 3); sphere(g, w / 2, 430, 250);
+    if (s.kicker) text(g, s.kicker.toUpperCase(), 90, 800, '600 30px "Figtree"', "rgba(247,242,251,.7)", "left");
+    const f = fitText(g, s.headline, { font: '400 {s}px "Fraunces"', size: 84, maxW: w - 180, maxH: 330, maxLines: 4 });
+    drawLines(g, f, 90, 800 + 30 + f.s, 1.12);
+    footer(g, w, h, s.n, s.total);
+  },
+  text(g, w, h, s) {
+    ground(g, w, h, s.look, 7 + (s.n || 0)); sphere(g, w - 170, 190, 95, false);
+    let y = 360;
+    if (s.kicker) { text(g, s.kicker.toUpperCase(), 90, y, '600 30px "Figtree"', "rgba(247,242,251,.7)", "left"); y += 40; }
+    const f = fitText(g, s.headline, { font: '400 {s}px "Fraunces"', size: 76, maxW: w - 180, maxH: 330, maxLines: 4 });
+    y = drawLines(g, f, 90, y + f.s, 1.12) + 30;
+    if (s.body) { const b = fitText(g, s.body, { font: '400 {s}px "Figtree"', size: 40, min: 28, maxW: w - 180, maxH: h - y - 200, lh: 1.42, maxLines: 9 }); drawLines(g, b, 90, y + b.s, 1.42, "left", "rgba(247,242,251,.85)"); }
+    footer(g, w, h, s.n, s.total);
+  },
+  quote(g, w, h, s) {
+    ground(g, w, h, s.look || "dusk", 41); sphere(g, w / 2, 300, 170);
+    text(g, (s.kicker || "To carry with you").toUpperCase(), w / 2, 600, '600 30px "Figtree"', "rgba(255,247,242,.7)");
+    const f = fitText(g, s.text, { font: 'italic 400 {s}px "Fraunces"', size: 84, min: 44, maxW: w - 180, maxH: 470, lh: 1.14, maxLines: 6 });
+    let y = drawLines(g, f, w / 2, 640 + f.s + 10, 1.14, "center", "#FFF7F2");
+    if (s.author) text(g, s.author + (s.work ? ", " + s.work : ""), w / 2, y + 30, '500 32px "Figtree"', "rgba(255,247,242,.75)");
+    text(g, "æther", w / 2, h - 90, 'italic 400 56px "Fraunces"', "rgba(255,247,242,.85)");
+  },
+  cta(g, w, h, s) {
+    ground(g, w, h, s.look, 61); warmGlow(g, w, h, 1.0, .45); sphere(g, w / 2, 330, 200);
+    const f = fitText(g, s.headline || "Your free reading is waiting", { font: '400 {s}px "Fraunces"', size: 80, maxW: w - 180, maxH: 200, maxLines: 2 });
+    let y = drawLines(g, f, w / 2, 640 + f.s, 1.1, "center");
+    const items = s.bullets || ["Totally free, always", "No account, no sign-up", "New every day", "440 planetary angles checked against your birth chart"];
+    y += 40; g.font = '500 38px "Figtree"';
+    for (const it of items) { const l = fitText(g, "✦  " + it, { font: '500 {s}px "Figtree"', size: 38, min: 28, maxW: w - 200, maxH: 120, maxLines: 2 }); y = drawLines(g, l, w / 2, y + l.s, 1.3, "center", "rgba(247,242,251,.9)") + 14; }
+    const pw = 560, ph = 96, px = w / 2 - pw / 2, py = h - 250; g.fillStyle = iris(g, px, px + pw); g.beginPath(); g.roundRect(px, py, pw, ph, ph / 2); g.fill();
+    text(g, s.button || "myaether.info · link in bio", w / 2, py + 61, '600 36px "Figtree"', DEEP);
+    text(g, "æther", w / 2, h - 70, 'italic 400 46px "Fraunces"', "rgba(247,242,251,.8)");
+  },
+  // Transparent text layers for reels (1080 × 1920). Text sits in the middle third, clear of TikTok/IG buttons.
+  beat(g, w, h, s) {
+    g.shadowColor = "rgba(15,8,32,.85)"; g.shadowBlur = 40;
+    const f = fitText(g, s.text, { font: '400 {s}px "Fraunces"', size: 92, min: 54, maxW: w - 200, maxH: 420, lh: 1.12, maxLines: 4 });
+    const top = 1180 - (f.lines.length * f.s * 1.12) / 2;
+    drawLines(g, f, w / 2, top + f.s, 1.12, "center"); drawLines(g, f, w / 2, top + f.s, 1.12, "center");
+    g.shadowBlur = 0;
+  },
+  end(g, w, h, s) {
+    g.fillStyle = "rgba(15,8,32,.35)"; g.fillRect(0, 0, w, h);
+    g.shadowColor = "rgba(15,8,32,.8)"; g.shadowBlur = 40;
+    text(g, "æther", w / 2, 1130, 'italic 400 200px "Fraunces"', INK);
+    text(g, s.line || "Your free daily reading", w / 2, 1250, '400 64px "Fraunces"', "rgba(247,242,251,.95)");
+    g.shadowBlur = 0;
+    const pw = 600, ph = 100, px = w / 2 - pw / 2, py = 1320; g.fillStyle = iris(g, px, px + pw); g.beginPath(); g.roundRect(px, py, pw, ph, ph / 2); g.fill();
+    text(g, s.button || "Free · no account · link in bio", w / 2, py + 64, '600 36px "Figtree"', DEEP);
+  },
+};
+const SIZES = { beat: [1080, 1920], end: [1080, 1920] };
+window.renderSpec = async spec => {
+  await Promise.all(['italic 400 104px "Fraunces"', '400 40px "Fraunces"', '500 30px "Figtree"', '600 32px "Figtree"', '400 30px "Figtree"'].map(f => document.fonts.load(f)));
+  const [w, h] = SIZES[spec.kind] || [1080, 1350];
+  const c = document.createElement("canvas"); c.width = w; c.height = h;
+  const g = c.getContext("2d"); RENDER[spec.kind](g, w, h, spec);
+  return spec.kind === "beat" || spec.kind === "end" ? c.toDataURL("image/png") : c.toDataURL("image/jpeg", 0.92);
+};
+document.title = "ready";
+</script>
+</body></html>

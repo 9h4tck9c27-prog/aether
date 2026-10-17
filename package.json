@@ -1,10 +1,10 @@
 {
   "name": "aether",
   "version": "1.0.0",
-  "description": "",
+  "description": "\u00e6ther: free daily astrological weather",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "social:sky": "node tools/social/sky.mjs"
   },
   "keywords": [],
   "author": "",
@@ -17,5 +17,7 @@
     "@netlify/blobs": "^8.2.0",
     "astronomy-engine": "^2.1.19",
     "three": "^0.169.0"
-  }
+  },
+  "type": "module",
+  "private": true
 }

@@ -16,7 +16,7 @@ const q = new URLSearchParams(location.search);
 const W = innerWidth, H = innerHeight;
 const sky = new Sky(document.getElementById("sky"));
 sky.renderer.setAnimationLoop(null);
-const now = new Date("2026-10-20T21:00:00Z");
+const now = new Date(q.get("date") ? q.get("date") + "T21:00:00Z" : "2026-10-20T21:00:00Z");
 const natal = natalChart({ birthDate: "1992-03-14", birthTime: "07:45", city: "Syracuse", lat: 43.05, lon: -76.15, tz: "America/New_York" });
 const sig = todaySignals(natal, now);
 sky.setSky(sig.sky); sky.setNatal(natal.pos, natal.asc);

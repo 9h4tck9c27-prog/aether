@@ -1,0 +1,54 @@
+name: Instagram · weekly render and Sunday brief
+on:
+  schedule:
+    - cron: "15 8 * * 0"    # Sunday 09:15 BST / 08:15 GMT: render, then email at 11:00 London
+    - cron: "40 10 * * 0"   # safety net: sends the brief if the first run failed
+  workflow_dispatch:
+    inputs:
+      no_wait: { description: "Send the brief straight away", type: boolean, default: false }
+concurrency: { group: social-weekly, cancel-in-progress: false }
+permissions: { contents: write }
+jobs:
+  weekly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check out the social data branch
+        run: |
+          if git fetch origin social; then git worktree add social-data origin/social;
+          else git worktree add --orphan -b social social-data; fi
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Install renderer
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
+          pip install -q playwright==1.48.0 && python -m playwright install --with-deps chromium
+      - name: Render, report and send
+        env:
+          IG_TOKEN: ${{ secrets.IG_TOKEN }}
+          SOCIAL_KEY: ${{ secrets.SOCIAL_KEY }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          REPORT_TO: ${{ secrets.REPORT_TO }}
+        run: cd tools/social && python weekly.py ${{ inputs.no_wait && '--no-wait' || '' }}
+      - name: Save plans, media list and analytics
+        if: always()
+        run: |
+          cd social-data
+          git config user.name "æther bot"; git config user.email "aetherapp@users.noreply.github.com"
+          git add -A; git diff --cached --quiet || (git commit -m "Weekly run $(date -u +%F)" && git push origin HEAD:social)
+  keepalive:
+    # GitHub pauses scheduled workflows after 60 days without commits; a tiny monthly commit keeps them running.
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          d=$(date -u +%d); [ "$d" -le 7 ] || exit 0
+          date -u +%F > .github/last-keepalive
+          git config user.name "æther bot"; git config user.email "aetherapp@users.noreply.github.com"
+          git add .github/last-keepalive && git commit -m "Keep scheduled workflows awake" && git push

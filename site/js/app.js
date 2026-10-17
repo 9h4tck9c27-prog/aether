@@ -903,6 +903,8 @@ else startOnboarding();
 loadKp();
 loadWeather();
 countOnce("open");
+// Visits that arrive from Instagram (the bio link adds ?src=ig), counted once a day like everything else.
+try { if (/[?&]src=ig\b/.test(location.search) || /instagram/i.test(document.referrer)) countOnce("instagram"); } catch { }
 // Opened from the old address (or an older home-screen icon): point people to the new home.
 if (/netlify\.app$/.test(location.hostname)) setTimeout(() => {
   const t = $("#toast");

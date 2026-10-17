@@ -2,7 +2,7 @@
 // The phone only sends this once a day, so the number is roughly "how many people opened æther today".
 import { getStore } from "@netlify/blobs";
 
-const EVENTS = new Set(["open", "reading"]);
+const EVENTS = new Set(["open", "reading", "instagram"]);
 
 export default async (req) => {
   let ev = "open";

@@ -2,8 +2,9 @@
 import { getStore } from "@netlify/blobs";
 
 export default async (req) => {
-  const key = Netlify.env.get("STATS_KEY");
-  if (key && new URL(req.url).searchParams.get("key") !== key) return new Response("Not found", { status: 404 });
+  const keys = [Netlify.env.get("STATS_KEY"), Netlify.env.get("SOCIAL_KEY")].filter(Boolean);
+  const given = new URL(req.url).searchParams.get("key") || req.headers.get("x-social-key");
+  if (keys.length && !keys.includes(given)) return new Response("Not found", { status: 404 });
   const store = getStore({ name: "counts", consistency: "strong" });
   const days = [];
   for (let i = 0; i < 60; i++) {
@@ -11,7 +12,7 @@ export default async (req) => {
     const v = await store.get(d, { type: "json" }).catch(() => null);
     if (v) days.push({ day: d, ...v });
   }
-  const total = days.reduce((a, d) => ({ open: a.open + (d.open || 0), reading: a.reading + (d.reading || 0) }), { open: 0, reading: 0 });
+  const total = days.reduce((a, d) => ({ open: a.open + (d.open || 0), reading: a.reading + (d.reading || 0), instagram: a.instagram + (d.instagram || 0) }), { open: 0, reading: 0, instagram: 0 });
   return Response.json({ last60: total, days }, { headers: { "Cache-Control": "no-store" } });
 };
 
