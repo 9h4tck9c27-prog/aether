@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check out the social data branch
         run: |
-          if git fetch origin social; then git worktree add social-data origin/social;
+          if git fetch origin social:refs/remotes/origin/social; then git worktree add social-data origin/social;
           else git worktree add --orphan -b social social-data; fi
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
