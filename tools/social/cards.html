@@ -136,21 +136,25 @@ const RENDER = {
     text(g, "æther", w / 2, h - 90, 'italic 400 56px "Fraunces"', "rgba(255,247,242,.85)");
   },
   cta(g, w, h, s) {
-    ground(g, w, h, s.look, 61); warmGlow(g, w, h, 1.0, .45); sphere(g, w / 2, 330, 200);
+    ground(g, w, h, s.look, 61); warmGlow(g, w, h, 1.0, .45); sphere(g, w / 2, 270, 170);
     const f = fitText(g, s.headline || "Your free reading is waiting", { font: '400 {s}px "Fraunces"', size: 80, maxW: w - 180, maxH: 200, maxLines: 2 });
-    let y = drawLines(g, f, w / 2, 640 + f.s, 1.1, "center");
+    let y = drawLines(g, f, w / 2, 520 + f.s, 1.1, "center");
     const items = s.bullets || ["Totally free, always", "No account, no sign-up", "New every day", "440 planetary angles checked against your birth chart"];
     y += 40; g.font = '500 38px "Figtree"';
     for (const it of items) { const l = fitText(g, "✦  " + it, { font: '500 {s}px "Figtree"', size: 38, min: 28, maxW: w - 200, maxH: 120, maxLines: 2 }); y = drawLines(g, l, w / 2, y + l.s, 1.3, "center", "rgba(247,242,251,.9)") + 14; }
-    const pw = 560, ph = 96, px = w / 2 - pw / 2, py = h - 250; g.fillStyle = iris(g, px, px + pw); g.beginPath(); g.roundRect(px, py, pw, ph, ph / 2); g.fill();
+    const pw = 600, ph = 96, px = w / 2 - pw / 2, py = Math.min(h - 210, Math.max(y + 30, h - 300)); g.fillStyle = iris(g, px, px + pw); g.beginPath(); g.roundRect(px, py, pw, ph, ph / 2); g.fill();
     text(g, s.button || "myaether.info · link in bio", w / 2, py + 61, '600 36px "Figtree"', DEEP);
     text(g, "æther", w / 2, h - 70, 'italic 400 46px "Fraunces"', "rgba(247,242,251,.8)");
   },
   // Transparent text layers for reels (1080 × 1920). Text sits in the middle third, clear of TikTok/IG buttons.
   beat(g, w, h, s) {
-    g.shadowColor = "rgba(15,8,32,.85)"; g.shadowBlur = 40;
     const f = fitText(g, s.text, { font: '400 {s}px "Fraunces"', size: 92, min: 54, maxW: w - 200, maxH: 420, lh: 1.12, maxLines: 4 });
-    const top = 1180 - (f.lines.length * f.s * 1.12) / 2;
+    const top = 1260 - (f.lines.length * f.s * 1.12) / 2;
+    // A soft dark pool behind the words so they read over the bright rings.
+    const cy = 1260 - f.s * 0.3, pool = g.createRadialGradient(w / 2, cy, 0, w / 2, cy, 620);
+    pool.addColorStop(0, "rgba(15,8,32,.62)"); pool.addColorStop(.55, "rgba(15,8,32,.4)"); pool.addColorStop(1, "rgba(15,8,32,0)");
+    g.save(); g.translate(w / 2, cy); g.scale(1, 0.55); g.translate(-w / 2, -cy); g.fillStyle = pool; g.fillRect(0, cy - 700, w, 1400); g.restore();
+    g.shadowColor = "rgba(15,8,32,.9)"; g.shadowBlur = 36;
     drawLines(g, f, w / 2, top + f.s, 1.12, "center"); drawLines(g, f, w / 2, top + f.s, 1.12, "center");
     g.shadowBlur = 0;
   },

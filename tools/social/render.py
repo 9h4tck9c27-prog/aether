@@ -28,7 +28,7 @@ def card(page, spec, path):
 def reel_frames(browser, date, frames_dir):
     shutil.rmtree(frames_dir, ignore_errors=True); frames_dir.mkdir(parents=True)
     page = browser.new_page(viewport={"width": 1080, "height": 1920}, device_scale_factor=1)
-    page.goto(f"http://localhost:{PORT}/tools/loop.html?slotY=0.06&slotH=0.5&date={date}")
+    page.goto(f"http://localhost:{PORT}/tools/loop.html?slotY=-0.02&slotH=0.46&date={date}")
     page.wait_for_function("document.title === 'ready'", timeout=60000)
     for i in range(int(REEL_SECS * FPS)):
         b64file(frames_dir / f"f{i:04d}.jpg", page.evaluate("step()"))
