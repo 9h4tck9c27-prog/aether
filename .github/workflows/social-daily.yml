@@ -23,6 +23,7 @@ jobs:
         env:
           IG_TOKEN: ${{ secrets.IG_TOKEN }}
           SOCIAL_KEY: ${{ secrets.SOCIAL_KEY }}
+          BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
         run: cd tools/social && python daily.py
       - name: Save the log
         if: always() && steps.data.outputs.ok == '1'

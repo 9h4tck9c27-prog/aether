@@ -47,6 +47,29 @@ def render_and_upload(plan, monday):
     return manifest
 
 
+def schedule_in_buffer(plan, manifest, monday):
+    """Hand the week to Buffer, once per post. Returns a short note for the brief."""
+    import buffer
+    from daily import caption_of
+    done = load_json(DATA / "log" / "buffer.json", {})
+    try:
+        chan = buffer.instagram_channel()
+    except RuntimeError as e:
+        return f"Couldn't reach Buffer: {e}"
+    ok, failed = 0, []
+    for p in plan["posts"]:
+        if p["id"] in done: ok += 1; continue
+        try:
+            done[p["id"]] = buffer.schedule(p, manifest["posts"][p["id"]]["urls"], chan["id"], caption_of(p)); ok += 1
+        except Exception as e:
+            failed.append(f"{p['id']}: {e}")
+    save_json(DATA / "log" / "buffer.json", done)
+    note = f"{ok} of {len(plan['posts'])} posts are scheduled in Buffer and will publish automatically."
+    if chan.get("isQueuePaused"): note += " Your Buffer queue is paused, so nothing will publish until you unpause it."
+    if failed: note += " Not scheduled: " + "; ".join(failed)[:600]
+    return note
+
+
 def insights_for(token, media_id):
     out = {}
     for m in METRICS:
@@ -113,8 +136,8 @@ def num(v):
     return "–" if v is None else f"{v:,}" if isinstance(v, int) else str(v)
 
 
-def brief_html(plan, source, manifest, rep):
-    handoff = not os.environ.get("IG_TOKEN")
+def brief_html(plan, source, manifest, rep, buffer_note=None):
+    handoff = not os.environ.get("IG_TOKEN") and not buffer_note
     handoff_box = ("""<div style="background:#fff4ec;border:1px solid #ffd2b8;border-radius:12px;padding:12px 14px;margin:6px 0 14px;font-size:14px;line-height:1.5">
       <b>Hand-off mode:</b> Instagram isn't connected yet, so the robot can't post for you this week. Tap each post's download link, then schedule it in
       Meta Business Suite (or the Instagram app: + → Advanced settings → Schedule) and paste in the caption and hashtags. About 5 minutes for the week.</div>""" if handoff else "")
@@ -151,6 +174,7 @@ def brief_html(plan, source, manifest, rep):
   <p style="font-size:16px;line-height:1.55;margin:0 0 6px"><b>This week:</b> {E(plan.get('theme',''))}</p>
   <p style="font-size:14px;line-height:1.55;color:#3d3352;margin:0 0 4px"><b>What changed and why:</b> {E(plan.get('notes',''))}</p>
   {handoff_box}
+  {f'<div style="background:#eefaf6;border:1px solid #bfe9db;border-radius:12px;padding:12px 14px;margin:6px 0 14px;font-size:14px;line-height:1.5"><b>Buffer:</b> {E(buffer_note)}</div>' if buffer_note else ''}
   <p style="font-size:12px;color:#6a5f80;margin:0 0 18px">Plan by: {E(source)}. {"Schedule each post for the time shown (London time)." if handoff else "Posts go out automatically at the times below (London time)."}</p>
   <h2 style="font-family:Georgia,serif;font-weight:400;font-size:24px;margin:18px 0 4px">The week's posts</h2>
   <table style="width:100%;border-collapse:collapse">{''.join(rows)}</table>
@@ -182,9 +206,10 @@ def main():
         print("Brief already sent for", monday); return
     plan, source = ensure_plan(monday)
     manifest = render_and_upload(plan, monday)
+    buffer_note = schedule_in_buffer(plan, manifest, monday) if (os.environ.get("BUFFER_API_KEY") and not DRY) else None
     rep = analytics(last_monday) if not DRY else {"week": str(last_monday), "posts": [], "account": {}, "site": {}, "errors": ["dry run: no live numbers"]}
     if not DRY: save_json(DATA / "analytics" / f"{last_monday}.json", rep); save_json(DATA / "analytics" / "latest.json", rep)
-    body = brief_html(plan, source, manifest, rep)
+    body = brief_html(plan, source, manifest, rep, buffer_note)
     (ROOT / "social-out").mkdir(exist_ok=True); (ROOT / "social-out" / "brief.html").write_text(body)
     if DRY: print("dry run: wrote social-out/brief.html"); return
     if "--no-wait" not in sys.argv:

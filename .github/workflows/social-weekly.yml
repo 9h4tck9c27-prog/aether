@@ -31,6 +31,7 @@ jobs:
         env:
           IG_TOKEN: ${{ secrets.IG_TOKEN }}
           SOCIAL_KEY: ${{ secrets.SOCIAL_KEY }}
+          BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           REPORT_TO: ${{ secrets.REPORT_TO }}

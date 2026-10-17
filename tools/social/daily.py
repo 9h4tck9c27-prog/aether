@@ -58,6 +58,8 @@ def main():
             due.append((post, media["posts"].get(post["id"], {}).get("urls", [])))
     if not due:
         print(now.isoformat(), "nothing due"); return
+    if os.environ.get("BUFFER_API_KEY"):
+        print("Buffer publishes these posts (scheduled on Sunday):", [p["id"] for p, _ in due]); return
     if not os.environ.get("IG_TOKEN") and not DRY:
         print("Hand-off mode: Instagram isn't connected yet (no IG_TOKEN), so these are posted by hand:", [p["id"] for p, _ in due]); return
     token = None if DRY else ig_token()
