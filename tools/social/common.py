@@ -48,8 +48,13 @@ def kv_put(name, value):
     return http("PUT", f"{SITE}/api/social/kv/{name}", json.dumps(value).encode(), {"x-social-key": social_key(), "Content-Type": "application/json"})
 
 
-def upload(path, name):
-    return http("PUT", f"{SITE}/api/social/media/{name}", pathlib.Path(path).read_bytes(), {"x-social-key": social_key()}, timeout=300)["url"]
+def upload(path, name, chunk=900_000):
+    """Upload a file to the site in small parts (the site's request limit is a few MB)."""
+    data = pathlib.Path(path).read_bytes()
+    parts = max(1, -(-len(data) // chunk))
+    for i in range(parts):
+        r = http("PUT", f"{SITE}/api/social/media/{name}?part={i}&parts={parts}", data[i * chunk:(i + 1) * chunk], {"x-social-key": social_key()}, timeout=300)
+    return r["url"]
 
 
 def ig_token():

@@ -38,6 +38,7 @@ jobs:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           REPORT_TO: ${{ secrets.REPORT_TO }}
+          AUTO_APPROVE: ${{ vars.AUTO_APPROVE }}
         run: cd tools/social && python weekly.py ${{ (inputs.no_wait || github.event_name == 'push') && '--no-wait' || '' }}
       - name: Save plans, media list and analytics
         if: always()

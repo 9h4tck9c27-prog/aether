@@ -13,7 +13,7 @@ const authed = req => {
 
 export default async (req, context) => {
   const { kind, name } = context.params;
-  if (!/^[a-z0-9][a-z0-9._-]{0,120}$/.test(name || "")) return new Response("Bad name", { status: 400 });
+  if (!/^[a-z0-9][a-z0-9._-]{0,140}$/.test(name || "")) return new Response("Bad name", { status: 400 });
   if (kind === "media") {
     const store = getStore("social-media");
     if (req.method === "GET") {
@@ -23,8 +23,28 @@ export default async (req, context) => {
     }
     if (!authed(req)) return new Response("Forbidden", { status: 403 });
     if (req.method === "PUT") {
+      // Big files arrive in parts (?part=0&parts=4) so each request stays small; the last part assembles them.
       const ext = name.split(".").pop().toLowerCase();
-      await store.set(name, await req.arrayBuffer(), { metadata: { type: TYPES[ext] || "application/octet-stream", at: Date.now() } });
+      const u = new URL(req.url);
+      const parts = +(u.searchParams.get("parts") || 1), part = +(u.searchParams.get("part") || 0);
+      const body = await req.arrayBuffer();
+      const meta = { metadata: { type: TYPES[ext] || "application/octet-stream", at: Date.now() } };
+      if (parts <= 1) await store.set(name, body, meta);
+      else {
+        await store.set(`${name}.part${part}`, body);
+        if (part === parts - 1) {
+          const chunks = [];
+          for (let i = 0; i < parts; i++) {
+            const c = await store.get(`${name}.part${i}`, { type: "arrayBuffer" });
+            if (!c) return Response.json({ ok: false, missing: i }, { status: 409 });
+            chunks.push(new Uint8Array(c));
+          }
+          const all = new Uint8Array(chunks.reduce((n, c) => n + c.length, 0));
+          let off = 0; for (const c of chunks) { all.set(c, off); off += c.length; }
+          await store.set(name, all.buffer, meta);
+          for (let i = 0; i < parts; i++) await store.delete(`${name}.part${i}`);
+        }
+      }
       return Response.json({ ok: true, url: new URL(`/api/social/media/${name}`, req.url).href });
     }
     if (req.method === "DELETE") { await store.delete(name); return Response.json({ ok: true }); }

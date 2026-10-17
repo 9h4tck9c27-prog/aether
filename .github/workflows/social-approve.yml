@@ -1,0 +1,29 @@
+name: Instagram · schedule an approved week in Buffer
+on:
+  push:
+    branches: [main]
+    paths: [".github/triggers/approve-now"]   # Claude writes the approved week's Monday here
+concurrency: { group: social-weekly, cancel-in-progress: false }
+permissions: { contents: write }
+jobs:
+  schedule:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          git fetch origin social:refs/remotes/origin/social
+          git worktree add social-data origin/social
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Schedule in Buffer
+        env:
+          SOCIAL_KEY: ${{ secrets.SOCIAL_KEY }}
+          BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+        run: cd tools/social && python weekly.py --schedule --week "$(cat ../../.github/triggers/approve-now)"
+      - name: Save the log
+        if: always()
+        run: |
+          cd social-data
+          git config user.name "æther bot"; git config user.email "aetherapp@users.noreply.github.com"
+          git add -A; git diff --cached --quiet || (git commit -m "Approved and scheduled $(date -u +%F)" && git push origin HEAD:social)

@@ -197,21 +197,52 @@ def send(subject, body_html):
         s.starttls(); s.login(user, pw); s.send_message(msg)
 
 
+def make_previews(manifest, monday):
+    """Small copies of every post on the social branch, so Claude can show them for approval."""
+    d = DATA / "preview" / str(monday); d.mkdir(parents=True, exist_ok=True)
+    for pid, entry in manifest["posts"].items():
+        for f in entry["files"]:
+            src, dst = OUT / f, d / f
+            if dst.exists() or not src.exists(): continue
+            if f.endswith(".mp4"):
+                subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(src), "-vf", "scale=540:-2", "-c:v", "libx264", "-crf", "30", "-preset", "veryfast",
+                                "-c:a", "aac", "-b:a", "64k", "-movflags", "+faststart", str(dst)], check=True)
+            else:
+                subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(src), "-vf", "scale=540:-2", "-q:v", "5", str(dst)], check=True)
+
+
+def arg(name):
+    return sys.argv[sys.argv.index(name) + 1] if name in sys.argv else None
+
+
 def main():
     today = now_london().date()
-    monday = next_monday(today)
+    monday = datetime.date.fromisoformat(arg("--week")) if arg("--week") else next_monday(today)
     last_monday = monday - datetime.timedelta(days=7)
-    sent_marker = DATA / "log" / f"brief-{monday}.sent"
-    if sent_marker.exists() and not DRY:
-        print("Brief already sent for", monday); return
+
+    if "--schedule" in sys.argv:
+        # Approved in chat: hand the rendered week to Buffer.
+        plan = load_json(DATA / "plans" / f"{monday}.json"); manifest = load_json(DATA / "media" / f"{monday}.json")
+        if not plan or not manifest: raise SystemExit(f"Week of {monday} isn't rendered yet")
+        note = schedule_in_buffer(plan, manifest, monday)
+        save_json(DATA / "log" / f"approved-{monday}.json", {"at": now_london().isoformat(), "buffer": note})
+        print(note); return
+
     plan, source = ensure_plan(monday)
     manifest = render_and_upload(plan, monday)
-    buffer_note = schedule_in_buffer(plan, manifest, monday) if (os.environ.get("BUFFER_API_KEY") and not DRY) else None
+    if not DRY: make_previews(manifest, monday)
     rep = analytics(last_monday) if not DRY else {"week": str(last_monday), "posts": [], "account": {}, "site": {}, "errors": ["dry run: no live numbers"]}
     if not DRY: save_json(DATA / "analytics" / f"{last_monday}.json", rep); save_json(DATA / "analytics" / "latest.json", rep)
+    auto = os.environ.get("AUTO_APPROVE") == "1" and os.environ.get("BUFFER_API_KEY")
+    buffer_note = schedule_in_buffer(plan, manifest, monday) if (auto and not DRY) else ("Waiting for your approval in Claude before anything is scheduled." if os.environ.get("BUFFER_API_KEY") else None)
     body = brief_html(plan, source, manifest, rep, buffer_note)
     (ROOT / "social-out").mkdir(exist_ok=True); (ROOT / "social-out" / "brief.html").write_text(body)
+    save_json(DATA / "preview" / str(monday) / "summary.json", {"week": str(monday), "source": source, "buffer": buffer_note, "analytics": rep})
     if DRY: print("dry run: wrote social-out/brief.html"); return
+    if not (os.environ.get("SMTP_USER") and os.environ.get("SMTP_PASS") and os.environ.get("REPORT_TO")):
+        print("No email settings: the brief is reviewed in Claude instead."); return
+    sent_marker = DATA / "log" / f"brief-{monday}.sent"
+    if sent_marker.exists(): print("Brief already sent for", monday); return
     if "--no-wait" not in sys.argv:
         target = now_london().replace(hour=11, minute=0, second=0, microsecond=0)
         wait = (target - now_london()).total_seconds()
