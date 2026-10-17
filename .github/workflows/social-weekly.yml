@@ -3,6 +3,9 @@ on:
   schedule:
     - cron: "15 8 * * 0"    # Sunday 09:15 BST / 08:15 GMT: render, then email at 11:00 London
     - cron: "40 10 * * 0"   # safety net: sends the brief if the first run failed
+  push:
+    branches: [main]
+    paths: [".github/triggers/weekly-now"]   # Claude can start a run by updating this file
   workflow_dispatch:
     inputs:
       no_wait: { description: "Send the brief straight away", type: boolean, default: false }
@@ -35,7 +38,7 @@ jobs:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           REPORT_TO: ${{ secrets.REPORT_TO }}
-        run: cd tools/social && python weekly.py ${{ inputs.no_wait && '--no-wait' || '' }}
+        run: cd tools/social && python weekly.py ${{ (inputs.no_wait || github.event_name == 'push') && '--no-wait' || '' }}
       - name: Save plans, media list and analytics
         if: always()
         run: |

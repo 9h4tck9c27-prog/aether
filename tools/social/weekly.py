@@ -222,4 +222,13 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import traceback
+    record = {"started": now_london().isoformat(), "args": sys.argv[1:]}
+    try:
+        main(); record["status"] = "ok"
+    except BaseException as e:
+        record["status"] = "failed"; record["error"] = f"{type(e).__name__}: {e}"; record["trace"] = traceback.format_exc()[-3000:]
+        raise
+    finally:
+        record["finished"] = now_london().isoformat()
+        if not DRY: save_json(DATA / "log" / "last-weekly.json", record)
