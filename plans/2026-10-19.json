@@ -1,26 +1,32 @@
 {
   "week": "2026-10-19",
   "timezone": "Europe/London",
-  "theme": "Automatic plan (the creative director's plan was missing).",
-  "notes": "Fallback plan generated from the real sky.",
+  "theme": "Scorpio season begins, Mercury turns retrograde, and the Sun meets Venus: a week for honest hearts and second drafts.",
+  "notes": "First week on autopilot: no analytics yet. Leading with the free-reading promo and the Mercury retrograde explainer, which tends to be the most shared astrology topic.",
   "posts": [
     {
       "id": "2026-10-19-promo",
-      "date": "2026-10-19",
-      "time": "17:00",
+      "date": "2026-10-17",
+      "time": "06:30",
       "format": "reel",
       "pillar": "promo",
       "beats": [
         "What is the sky saying about your day?",
-        "A free reading from the real sky and your birth chart.",
+        "A free reading made from the real sky and your birth chart.",
         "No account. No paywall. New every day."
       ],
-      "caption": "æther reads today's real sky against your birth chart and tells you what it means in plain, warm words.\n\nFree, no account, new every day. Link in bio: myaether.info",
+      "end": {
+        "line": "Your free daily reading",
+        "button": "Free · no account · link in bio"
+      },
+      "caption": "Some days you just want to know it's not only you.\n\næther reads today's real sky against your birth chart: 440 planetary angles, the Moon's 27 Vedic lunar mansions, space weather and even the weather outside your window. Then it tells you what it means in plain, warm words.\n\nIt's free. No account, no sign-up, new every day.\n\nYour reading is in the link in bio: myaether.info",
       "hashtags": [
         "astrology",
         "dailyhoroscope",
+        "birthchart",
+        "astrologyreading",
         "spirituality",
-        "zodiac"
+        "selfcare"
       ]
     },
     {
@@ -33,53 +39,52 @@
         {
           "kind": "cover",
           "kicker": "This week's sky",
-          "headline": "What's moving above you this week"
-        },
-        {
-          "kind": "text",
-          "kicker": "Monday",
-          "headline": "Neptune sextile Pluto",
-          "body": "Neptune sextile Pluto: they work together."
+          "headline": "A week for honest hearts and second drafts"
         },
         {
           "kind": "text",
           "kicker": "Tuesday",
-          "headline": "Venus square Pluto",
-          "body": "Venus square Pluto: they pull against each other."
+          "headline": "Venus squares Pluto",
+          "body": "Love and pleasure meet something deeper. Old jealousies or big feelings can surface. Say the true thing, gently, and let the rest pass."
         },
         {
           "kind": "text",
           "kicker": "Friday",
-          "headline": "The Sun moves into Scorpio.",
-          "body": "The Sun moves into Scorpio."
+          "headline": "Scorpio season begins",
+          "body": "The Sun moves into Scorpio. The next month rewards depth over small talk, and letting go of what you've outgrown."
         },
         {
           "kind": "text",
           "kicker": "Saturday",
-          "headline": "Mercury turns retrograde.",
-          "body": "Mercury turns retrograde."
+          "headline": "Mercury turns retrograde",
+          "body": "Three weeks of second thoughts begin. Back up your files, reread before you send, and give old ideas a second look."
+        },
+        {
+          "kind": "text",
+          "kicker": "Saturday",
+          "headline": "The Sun meets Venus",
+          "body": "The heart of the sky lines up with the planet of love. A lovely moment to notice what, and who, you truly value."
         },
         {
           "kind": "cta",
-          "headline": "Your free reading is waiting",
+          "headline": "What does it mean for you?",
           "bullets": [
-            "Totally free, always",
+            "Your free reading, made from your birth chart",
             "No account needed",
-            "New every day",
-            "440 planetary angles checked"
+            "New every day"
           ],
           "button": "myaether.info · link in bio"
         }
       ],
-      "caption": "This week's sky in plain words. How does it land in your chart? Your free reading is in the link in bio.",
+      "caption": "Your week in the stars, in plain words.\n\nVenus squares Pluto on Tuesday, Scorpio season starts on Friday, and Mercury turns retrograde on Saturday, the same day the Sun meets Venus.\n\nWant to know how it lands in your own chart? Your free reading is in the link in bio. No account needed.",
       "hashtags": [
         "astrology",
-        "dailyhoroscope",
-        "spirituality",
-        "zodiac",
-        "weeklyhoroscope"
+        "scorpioseason",
+        "mercuryretrograde",
+        "weeklyhoroscope",
+        "astrologyforecast"
       ],
-      "alt": "Slides explaining this week's astrology on a night sky."
+      "alt": "Six slides on a night-purple sky with æther's glowing sphere, explaining this week's astrology: Venus square Pluto, Scorpio season, Mercury retrograde and the Sun meeting Venus."
     },
     {
       "id": "2026-10-21-quote",
@@ -88,16 +93,19 @@
       "format": "quote",
       "pillar": "quote",
       "quote": {
-        "text": "I am large, I contain multitudes.",
-        "author": "Walt Whitman",
-        "work": "Song of Myself"
+        "text": "The deeper that sorrow carves into your being, the more joy you can contain.",
+        "author": "Kahlil Gibran",
+        "work": "The Prophet, 1923"
       },
-      "caption": "A line to carry this week. Your free daily reading is in the link in bio.",
+      "caption": "A line for Scorpio season, which is coming on Friday: the season of depth.\n\nWhatever you're carrying this week, it's not just you.\n\nYour free daily reading is in the link in bio.",
       "hashtags": [
+        "kahlilgibran",
         "poetry",
+        "scorpioseason",
+        "healing",
         "astrology"
       ],
-      "alt": "A quote on a dusk sky."
+      "alt": "A quote by Kahlil Gibran on a dusk-coloured sky: The deeper that sorrow carves into your being, the more joy you can contain."
     },
     {
       "id": "2026-10-22-moon",
@@ -106,20 +114,26 @@
       "format": "reel",
       "pillar": "moon",
       "beats": [
-        "The Moon is in Pisces.",
-        "A day for healing, quietly and on your own terms.",
-        "See what it means for you."
+        "The Moon is swimming through Pisces.",
+        "Feelings run deep and soft. Let them.",
+        "On Monday she's full, in Taurus."
       ],
-      "caption": "The Moon is 84% lit and moving through Pisces. Your free reading follows her through all 27 lunar mansions. Link in bio.",
+      "end": {
+        "line": "Follow the Moon with æther",
+        "button": "Free · no account · link in bio"
+      },
+      "caption": "The Moon is in dreamy Pisces and growing toward Monday's Full Moon in Taurus.\n\nA good few days for rest, music, water and honest feelings.\n\næther follows the Moon through all 27 Vedic lunar mansions in your free daily reading. Link in bio.",
       "hashtags": [
         "moon",
+        "fullmoon",
         "moonphases",
         "astrology",
-        "dailyhoroscope"
+        "pisces",
+        "taurus"
       ]
     },
     {
-      "id": "2026-10-23-learn",
+      "id": "2026-10-23-retrograde",
       "date": "2026-10-23",
       "time": "17:00",
       "format": "carousel",
@@ -127,42 +141,53 @@
       "slides": [
         {
           "kind": "cover",
-          "kicker": "Astrology, plainly",
-          "headline": "What is a birth chart?"
+          "kicker": "Starts tomorrow",
+          "headline": "What Mercury retrograde actually means"
         },
         {
           "kind": "text",
-          "kicker": "The idea",
-          "headline": "A map of the sky the moment you were born",
-          "body": "Where the Sun, Moon and planets were, seen from your birthplace."
+          "kicker": "The sky",
+          "headline": "Mercury seems to walk backwards",
+          "body": "It doesn't really. Earth is overtaking it, so from here it looks like it's reversing for about three weeks."
         },
         {
           "kind": "text",
-          "kicker": "Why it matters",
-          "headline": "Today's sky talks to it",
-          "body": "When today's planets make angles to your birth chart, astrologers read it as the weather of your day."
+          "kicker": "The meaning",
+          "headline": "Words, plans and travel slow down",
+          "body": "Astrologers link it to crossed wires and second thoughts. It's less a curse and more a pause to review."
+        },
+        {
+          "kind": "text",
+          "kicker": "What helps",
+          "headline": "Re-do, re-read, reconnect",
+          "body": "Double-check messages and plans. Finish old projects. Reach out to someone from the past, if it feels right."
+        },
+        {
+          "kind": "text",
+          "kicker": "What doesn't",
+          "headline": "Panic",
+          "body": "Nothing has to go wrong. It's weather, not a verdict. Pack an umbrella and keep going."
         },
         {
           "kind": "cta",
-          "headline": "Your free reading is waiting",
+          "headline": "See where it lands in your chart",
           "bullets": [
-            "Totally free, always",
+            "Free daily reading",
             "No account needed",
-            "New every day",
-            "440 planetary angles checked"
+            "Built from the real sky"
           ],
           "button": "myaether.info · link in bio"
         }
       ],
-      "caption": "Your birth chart, explained in 30 seconds. See yours, free, in the link in bio.",
+      "caption": "Mercury turns retrograde tomorrow and stays that way into November.\n\nHere's what it actually means, without the panic. Save this one for later.\n\nWant to know which part of your life it touches? Your free reading is in the link in bio.",
       "hashtags": [
+        "mercuryretrograde",
         "astrology",
-        "dailyhoroscope",
-        "spirituality",
+        "astrology101",
         "zodiac",
-        "birthchart"
+        "spirituality"
       ],
-      "alt": "Slides explaining a birth chart."
+      "alt": "Six slides explaining Mercury retrograde in plain words, with æther's glowing sphere on a night sky."
     },
     {
       "id": "2026-10-24-relatable",
@@ -173,14 +198,16 @@
       "slide": {
         "kind": "cover",
         "kicker": "It's not just you",
-        "headline": "Some weeks the sky is loud. Be gentle with yourself."
+        "headline": "If you reread that text five times today, blame Mercury."
       },
-      "caption": "Send this to someone who needs it. Free daily reading in the link in bio.",
+      "caption": "Mercury turned retrograde today. Second thoughts are allowed.\n\nTag the friend who needs this. Then get your free reading in the link in bio.",
       "hashtags": [
+        "mercuryretrograde",
+        "astrologymemes",
         "itsnotjustyou",
         "astrology"
       ],
-      "alt": "A short affirmation on a night sky."
+      "alt": "Text on a night sky: If you reread that text five times today, blame Mercury."
     },
     {
       "id": "2026-10-25-ahead",
@@ -189,17 +216,21 @@
       "format": "reel",
       "pillar": "week-ahead",
       "beats": [
-        "Here's what's coming next week.",
-        "Full Moon in Taurus.",
-        "Your free reading is waiting."
+        "Next week opens with a Full Moon in Taurus.",
+        "Something you've grown is ready to be seen.",
+        "See what it means for you."
       ],
-      "caption": "A fresh week under a new sky. See what it means for you, free, in the link in bio.",
+      "end": {
+        "line": "Your week, in your stars",
+        "button": "Free · no account · link in bio"
+      },
+      "caption": "Monday brings the Full Moon in Taurus: the Hunter's Moon, all about comfort, worth and what you've grown.\n\nYour free reading shows how it meets your own birth chart. No account, no paywall. Link in bio.",
       "hashtags": [
+        "fullmoon",
+        "taurus",
+        "weeklyhoroscope",
         "astrology",
-        "dailyhoroscope",
-        "spirituality",
-        "zodiac",
-        "weeklyhoroscope"
+        "moonmagic"
       ]
     }
   ]
