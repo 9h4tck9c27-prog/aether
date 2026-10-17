@@ -7,8 +7,8 @@ import { getStore } from "@netlify/blobs";
 
 const TYPES = { mp4: "video/mp4", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", json: "application/json" };
 const authed = req => {
-  const key = Netlify.env.get("SOCIAL_KEY");
-  return !!key && req.headers.get("x-social-key") === key;
+  const key = (Netlify.env.get("SOCIAL_KEY") || "").trim();
+  return !!key && (req.headers.get("x-social-key") || "").trim() === key;
 };
 
 export default async (req, context) => {

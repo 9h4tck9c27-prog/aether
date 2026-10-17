@@ -35,7 +35,7 @@ def http(method, url, data=None, headers=None, raw=False, timeout=120):
 
 
 def social_key():
-    k = os.environ.get("SOCIAL_KEY")
+    k = (os.environ.get("SOCIAL_KEY") or "").strip()
     if not k: raise SystemExit("SOCIAL_KEY is not set")
     return k
 
