@@ -34,6 +34,7 @@ export default async (req, context) => {
       const ext = name.split(".").pop().toLowerCase();
       const u = new URL(req.url);
       const parts = +(u.searchParams.get("parts") || 1), part = +(u.searchParams.get("part") || 0);
+      if (!/octet-stream|image\/|video\//.test(req.headers.get("content-type") || "")) return new Response("Send files as application/octet-stream", { status: 415 });
       const body = await req.arrayBuffer();
       const meta = { metadata: { type: TYPES[ext] || "application/octet-stream", at: Date.now() } };
       if (parts <= 1) await store.set(name, body, meta);

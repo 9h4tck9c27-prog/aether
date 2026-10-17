@@ -21,7 +21,7 @@ def http(method, url, data=None, headers=None, raw=False, timeout=120):
     body = None
     headers = dict(headers or {})
     if isinstance(data, (bytes, bytearray)):
-        body = data
+        body = data; headers.setdefault("Content-Type", "application/octet-stream")
     elif data is not None:
         body = urllib.parse.urlencode(data).encode(); headers.setdefault("Content-Type", "application/x-www-form-urlencoded")
     req = urllib.request.Request(url, data=body, method=method, headers={"User-Agent": "aether-social/1.0", **headers})
@@ -53,7 +53,8 @@ def upload(path, name, chunk=900_000):
     data = pathlib.Path(path).read_bytes()
     parts = max(1, -(-len(data) // chunk))
     for i in range(parts):
-        r = http("PUT", f"{SITE}/api/social/media/{name}?part={i}&parts={parts}", data[i * chunk:(i + 1) * chunk], {"x-social-key": social_key()}, timeout=300)
+        r = http("PUT", f"{SITE}/api/social/media/{name}?part={i}&parts={parts}", data[i * chunk:(i + 1) * chunk],
+                 {"x-social-key": social_key(), "Content-Type": "application/octet-stream"}, timeout=300)
     return r["url"]
 
 
