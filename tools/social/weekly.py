@@ -52,6 +52,15 @@ def schedule_in_buffer(plan, manifest, monday):
     import buffer
     from daily import caption_of
     done = load_json(DATA / "log" / "buffer.json", {})
+    if "--replace" in sys.argv:
+        # Take back everything scheduled earlier for this week, then schedule the current plan fresh.
+        kept = {}
+        for pid, info in done.items():
+            try: buffer.delete(info["buffer_id"])
+            except Exception as e: kept[pid] = {**info, "delete_error": str(e)[:900]}
+        save_json(DATA / "log" / "buffer-removed.json", {"at": now_london().isoformat(), "removed": [k for k in done if k not in kept], "failed": kept})
+        if kept: return "Couldn't remove the earlier Buffer posts, so nothing new was scheduled: " + "; ".join(f"{k}: {v['delete_error']}" for k, v in kept.items())[:900]
+        done = {}
     try:
         chan = buffer.instagram_channel()
     except RuntimeError as e:

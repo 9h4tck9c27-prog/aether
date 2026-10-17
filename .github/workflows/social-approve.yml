@@ -20,7 +20,7 @@ jobs:
         env:
           SOCIAL_KEY: ${{ secrets.SOCIAL_KEY }}
           BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
-        run: cd tools/social && python weekly.py --schedule --week "$(head -c 10 ../../.github/triggers/approve-now)"
+        run: cd tools/social && python weekly.py --schedule --week "$(head -c 10 ../../.github/triggers/approve-now)" $(grep -q replace ../../.github/triggers/approve-now && echo --replace)
       - name: Save the log
         if: always()
         run: |

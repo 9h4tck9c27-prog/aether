@@ -51,3 +51,22 @@ def schedule(post, urls, channel_id, caption):
     r = gql(q)["createPost"]
     if r.get("message"): raise RuntimeError("Buffer: " + r["message"])
     return {"buffer_id": r["post"]["id"], "due": r["post"]["dueAt"]}
+
+
+def delete(post_id):
+    """Remove a scheduled post. Buffer's API is in beta, so try the likely shapes and report what exists if none work."""
+    tries = [f"mutation {{ deletePost(input: {{ id: {s(post_id)} }}) {{ __typename }} }}",
+             f"mutation {{ deletePost(id: {s(post_id)}) {{ __typename }} }}",
+             f"mutation {{ deletePost(input: {{ postId: {s(post_id)} }}) {{ __typename }} }}"]
+    errors = []
+    for q in tries:
+        try:
+            gql(q); return True
+        except RuntimeError as e:
+            errors.append(str(e))
+    try:
+        fields = gql('query { __type(name: "Mutation") { fields { name args { name type { name kind ofType { name kind } } } } } }')
+        names = [f["name"] for f in fields["__type"]["fields"]]
+    except RuntimeError as e:
+        names = [f"introspection failed: {e}"]
+    raise RuntimeError(f"couldn't delete {post_id}: {errors[-1]} | mutations available: {names}")

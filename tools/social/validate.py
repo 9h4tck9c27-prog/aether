@@ -25,7 +25,7 @@ def check(plan):
         ids.add(p.get("id"))
         try:
             d = datetime.date.fromisoformat(p["date"])
-            if not 0 <= (d - monday).days <= 6: errs.append(f"{w}: date outside the week")
+            if not -7 <= (d - monday).days <= 6: errs.append(f"{w}: date outside the week (posts may move up to a week early)")
         except Exception: errs.append(f"{w}: bad date")
         if not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", p.get("time", "")): errs.append(f"{w}: time must be HH:MM")
         fmt = p.get("format")
