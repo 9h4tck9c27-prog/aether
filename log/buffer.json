@@ -1,30 +1,30 @@
 {
   "2026-10-19-promo": {
-    "buffer_id": "6ad2fcddc34368e4b0a8ad1c",
-    "due": "2026-10-19T16:00:00.000Z"
+    "buffer_id": "6ad301ca8ac6cfe5442f3323",
+    "due": "2026-10-17T05:30:00.000Z"
   },
   "2026-10-20-sky": {
-    "buffer_id": "6ad2fcde52adf2bfae761362",
+    "buffer_id": "6ad301cbc34368e4b0a9aa2d",
     "due": "2026-10-20T16:00:00.000Z"
   },
   "2026-10-21-quote": {
-    "buffer_id": "6ad2fcde52adf2bfae76138a",
+    "buffer_id": "6ad301cb52adf2bfae7736ca",
     "due": "2026-10-21T16:00:00.000Z"
   },
   "2026-10-22-moon": {
-    "buffer_id": "6ad2fce052adf2bfae7613b4",
+    "buffer_id": "6ad301cc52adf2bfae773702",
     "due": "2026-10-22T16:00:00.000Z"
   },
-  "2026-10-23-learn": {
-    "buffer_id": "6ad2fce01694d771d51d2b17",
+  "2026-10-23-retrograde": {
+    "buffer_id": "6ad301ce52adf2bfae77374a",
     "due": "2026-10-23T16:00:00.000Z"
   },
   "2026-10-24-relatable": {
-    "buffer_id": "6ad2fce11694d771d51d2b3f",
+    "buffer_id": "6ad301ce1c7e49ea4c3a486d",
     "due": "2026-10-24T16:00:00.000Z"
   },
   "2026-10-25-ahead": {
-    "buffer_id": "6ad2fce21694d771d51d2b81",
+    "buffer_id": "6ad301cfc34368e4b0a9aaae",
     "due": "2026-10-25T17:00:00.000Z"
   }
 }
