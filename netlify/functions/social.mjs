@@ -16,10 +16,17 @@ export default async (req, context) => {
   if (!/^[a-z0-9][a-z0-9._-]{0,140}$/.test(name || "")) return new Response("Bad name", { status: 400 });
   if (kind === "media") {
     const store = getStore("social-media");
-    if (req.method === "GET") {
-      const res = await store.getWithMetadata(name, { type: "stream" });
+    if (req.method === "GET" || req.method === "HEAD") {
+      // Plain, complete responses with a real Content-Length: schedulers like Buffer check these before fetching.
+      const res = await store.getWithMetadata(name, { type: "arrayBuffer" });
       if (!res) return new Response("Not found", { status: 404 });
-      return new Response(res.data, { headers: { "Content-Type": res.metadata?.type || "application/octet-stream", "Cache-Control": "public, max-age=86400" } });
+      const headers = {
+        "Content-Type": res.metadata?.type || "application/octet-stream",
+        "Content-Length": String(res.data.byteLength),
+        "Accept-Ranges": "none",
+        "Cache-Control": "public, max-age=86400",
+      };
+      return new Response(req.method === "HEAD" ? null : res.data, { headers });
     }
     if (!authed(req)) return new Response("Forbidden", { status: 403 });
     if (req.method === "PUT") {
@@ -58,4 +65,4 @@ export default async (req, context) => {
   return new Response("Not allowed", { status: 405 });
 };
 
-export const config = { path: "/api/social/:kind/:name", method: ["GET", "PUT", "DELETE"] };
+export const config = { path: "/api/social/:kind/:name", method: ["GET", "HEAD", "PUT", "DELETE"] };
