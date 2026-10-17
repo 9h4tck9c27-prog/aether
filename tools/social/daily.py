@@ -1,5 +1,5 @@
 """Post anything that's due. Runs every 30 minutes; posts each item once, within 6 hours of its time."""
-import datetime, json, sys, time
+import datetime, json, os, sys, time
 from common import DATA, LONDON, ig, ig_token, ig_user, load_json, now_london, save_json, monday_of
 
 DRY = "--dry-run" in sys.argv
@@ -58,6 +58,8 @@ def main():
             due.append((post, media["posts"].get(post["id"], {}).get("urls", [])))
     if not due:
         print(now.isoformat(), "nothing due"); return
+    if not os.environ.get("IG_TOKEN") and not DRY:
+        print("Hand-off mode: Instagram isn't connected yet (no IG_TOKEN), so these are posted by hand:", [p["id"] for p, _ in due]); return
     token = None if DRY else ig_token()
     user = None if DRY else ig_user(token)[0]
     for post, urls in due:

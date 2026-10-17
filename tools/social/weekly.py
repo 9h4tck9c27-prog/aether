@@ -114,6 +114,10 @@ def num(v):
 
 
 def brief_html(plan, source, manifest, rep):
+    handoff = not os.environ.get("IG_TOKEN")
+    handoff_box = ("""<div style="background:#fff4ec;border:1px solid #ffd2b8;border-radius:12px;padding:12px 14px;margin:6px 0 14px;font-size:14px;line-height:1.5">
+      <b>Hand-off mode:</b> Instagram isn't connected yet, so the robot can't post for you this week. Tap each post's download link, then schedule it in
+      Meta Business Suite (or the Instagram app: + → Advanced settings → Schedule) and paste in the caption and hashtags. About 5 minutes for the week.</div>""" if handoff else "")
     css = "font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#1C1230"
     rows = []
     for p in plan["posts"]:
@@ -128,7 +132,7 @@ def brief_html(plan, source, manifest, rep):
           <div style="font-family:Georgia,serif;font-size:19px;line-height:1.3;margin:6px 0 8px">{E(headline_of(p))}</div>
           <div style="font-size:14px;line-height:1.5;color:#3d3352;white-space:pre-line">{E(p['caption'][:420])}{'…' if len(p['caption']) > 420 else ''}</div>
           <div style="font-size:13px;color:#6A52D1;margin-top:6px">{E(' '.join('#' + t for t in p.get('hashtags', [])))}</div>
-          <div style="font-size:13px;margin-top:6px"><a href="{E(link)}" style="color:#6A52D1">Open the {'video' if p['format']=='reel' else 'image'}</a></div></td></tr>""")
+          <div style="font-size:13px;margin-top:6px">{' · '.join(f'<a href="{E(u)}" style="color:#6A52D1">{"Download video" if u.endswith(".mp4") else ("Download cover" if "-cover" in u else ("Download slide " + str(k + 1) if p["format"] == "carousel" else "Download image"))}</a>' for k, u in enumerate(urls))}</div></td></tr>""")
     # Analytics
     a = rep.get("account", {}); s = rep.get("site", {})
     posts = sorted(rep.get("posts", []), key=lambda x: -(x["insights"].get("reach") or x["insights"].get("views") or 0))
@@ -146,7 +150,8 @@ def brief_html(plan, source, manifest, rep):
   <div style="padding:22px 28px">
   <p style="font-size:16px;line-height:1.55;margin:0 0 6px"><b>This week:</b> {E(plan.get('theme',''))}</p>
   <p style="font-size:14px;line-height:1.55;color:#3d3352;margin:0 0 4px"><b>What changed and why:</b> {E(plan.get('notes',''))}</p>
-  <p style="font-size:12px;color:#6a5f80;margin:0 0 18px">Plan by: {E(source)}. Posts go out automatically at the times below (London time).</p>
+  {handoff_box}
+  <p style="font-size:12px;color:#6a5f80;margin:0 0 18px">Plan by: {E(source)}. {"Schedule each post for the time shown (London time)." if handoff else "Posts go out automatically at the times below (London time)."}</p>
   <h2 style="font-family:Georgia,serif;font-weight:400;font-size:24px;margin:18px 0 4px">The week's posts</h2>
   <table style="width:100%;border-collapse:collapse">{''.join(rows)}</table>
   <h2 style="font-family:Georgia,serif;font-weight:400;font-size:24px;margin:28px 0 8px">How last week went</h2>
