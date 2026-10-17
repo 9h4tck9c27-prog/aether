@@ -1,0 +1,78 @@
+=== HEAD https://myaether.info/api/social/media/2026-10-21-quote.jpg
+HTTP/2 200 
+accept-ranges: none
+age: 1
+cache-control: public,max-age=86400
+cache-status: "Netlify Durable"; fwd=bypass
+cache-status: "Netlify Edge"; fwd=miss; fwd-status=200; stored
+content-type: image/jpeg
+date: Sat, 17 Oct 2026 04:30:51 GMT
+netlify-vary: query
+server: Netlify
+strict-transport-security: max-age=31536000
+x-content-type-options: nosniff
+x-nf-request-id: 01M5420YNNTG67H8KDRJ1A5ER4
+
+=== GET https://myaether.info/api/social/media/2026-10-21-quote.jpg
+status=200 type=image/jpeg size=252249
+/tmp/f: data
+00000000: efbf bdef bfbd efbf bdef bfbd 0010 4a46  ..............JF
+00000010: 4946 0001 0100 0001 0001 0000 efbf bdef  IF..............
+00000020: bfbd 01ef bfbd 4943 435f 5052 4f46 494c  ......ICC_PROFIL
+=== HEAD https://myaether.info/m/2026-10-21-quote.jpg
+HTTP/2 400 
+age: 0
+cache-control: no-cache
+cache-status: "Netlify Durable"; fwd=bypass
+cache-status: "Netlify Edge"; fwd=miss; fwd-status=400
+content-type: text/plain;charset=UTF-8
+date: Sat, 17 Oct 2026 04:30:52 GMT
+netlify-vary: query
+server: Netlify
+strict-transport-security: max-age=31536000
+x-content-type-options: nosniff
+x-nf-request-id: 01M54210SG9X3CNVGJP3GN33E2
+
+=== GET https://myaether.info/m/2026-10-21-quote.jpg
+status=400 type=text/plain;charset=UTF-8 size=8
+/tmp/f: ASCII text, with no line terminators
+00000000: 4261 6420 6e61 6d65                      Bad name
+=== HEAD https://myaether.info/api/social/media/2026-10-19-promo.mp4
+HTTP/2 200 
+accept-ranges: none
+age: 0
+cache-control: public,max-age=86400
+cache-status: "Netlify Durable"; fwd=bypass
+cache-status: "Netlify Edge"; fwd=miss; fwd-status=200; stored
+content-type: video/mp4
+date: Sat, 17 Oct 2026 04:30:53 GMT
+netlify-vary: query
+server: Netlify
+strict-transport-security: max-age=31536000
+x-content-type-options: nosniff
+x-nf-request-id: 01M54211EQGPBYA9PMCREAWNPS
+
+=== GET https://myaether.info/api/social/media/2026-10-19-promo.mp4
+status=200 type=video/mp4 size=6593937
+/tmp/f: ISO Media, MP4 Base Media v1 [ISO 14496-12:2003]
+00000000: 0000 0020 6674 7970 6973 6f6d 0000 0200  ... ftypisom....
+00000010: 6973 6f6d 6973 6f32 6176 6331 6d70 3431  isomiso2avc1mp41
+00000020: 0000 413d 6d6f 6f76 0000 006c 6d76 6864  ..A=moov...lmvhd
+=== HEAD https://myaether.info/m/2026-10-19-promo.mp4
+HTTP/2 400 
+age: 0
+cache-control: no-cache
+cache-status: "Netlify Durable"; fwd=bypass
+cache-status: "Netlify Edge"; fwd=miss; fwd-status=400
+content-type: text/plain;charset=UTF-8
+date: Sat, 17 Oct 2026 04:30:55 GMT
+netlify-vary: query
+server: Netlify
+strict-transport-security: max-age=31536000
+x-content-type-options: nosniff
+x-nf-request-id: 01M54213BEA9RR7HMEZ3B429KB
+
+=== GET https://myaether.info/m/2026-10-19-promo.mp4
+status=400 type=text/plain;charset=UTF-8 size=8
+/tmp/f: ASCII text, with no line terminators
+00000000: 4261 6420 6e61 6d65                      Bad name
