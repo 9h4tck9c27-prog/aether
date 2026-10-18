@@ -26,6 +26,7 @@ body[data-phase="dusk"] {
   --ink: #FFF7F2; --ink-soft: rgba(255, 247, 242, .78); --ink-faint: rgba(255, 247, 242, .55);
   --surface: rgba(255, 255, 255, .13); --surface-strong: rgba(45, 29, 78, .92); --line: rgba(255, 247, 242, .2);
   --accent: #FFB89A; --accent-ink: #1C1230; --heavy: #8f9ad6; --golden: #FFD2A8;
+  --card-ground: #4a2f6e;
 }
 body[data-phase="dawn"] {
   --bg-top: #f6eefb; --bg-bottom: #ffcfba; --glow: rgba(255, 184, 154, .45);
@@ -303,7 +304,7 @@ body.onboarding .pill-hint { display: none !important; }
 /* Soft backdrop that starts just above the text, so the sphere shows above and faintly behind it. */
 .stage::before {
   content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
-  background: linear-gradient(180deg, transparent 0, transparent var(--scrim), color-mix(in srgb, var(--bg-bottom) 78%, transparent) calc(var(--scrim) + 120px), color-mix(in srgb, var(--bg-bottom) 92%, transparent) 100%);
+  background: linear-gradient(180deg, transparent 0, transparent var(--scrim), color-mix(in srgb, var(--card-ground, var(--bg-bottom)) 80%, transparent) calc(var(--scrim) + 120px), color-mix(in srgb, var(--card-ground, var(--bg-bottom)) 94%, transparent) 100%);
   transition: --scrim .6s;
 }
 @property --scrim { syntax: "<length>"; inherits: true; initial-value: 0px; }
@@ -373,7 +374,7 @@ body.reading-mode .pill-hint { display: none !important; }
 @media (prefers-reduced-motion: reduce) { .next-hint, .next-hint::after, .chevs i { animation: none !important; } .chevs i { opacity: 1; } }
 .card .rv { opacity: 0; transform: translateY(16px); filter: blur(5px); transition: opacity .7s var(--ease), transform .7s var(--ease), filter .7s var(--ease); transition-delay: calc(var(--d, 0) * 110ms + 250ms); }
 .card.active .rv { opacity: 1; transform: none; filter: none; }
-.kicker { font-size: 13px; color: var(--ink-faint); margin: 10px 0 8px; }
+.kicker { font-size: 11.5px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-soft); margin: 10px 0 10px; }
 .card-title { font-family: var(--serif); font-weight: 400; font-variation-settings: "SOFT" 100, "opsz" 72; font-size: clamp(25px, 7vw, 32px); line-height: 1.15; margin: 0 0 14px; letter-spacing: -.01em; text-wrap: balance; }
 .card-title.big { font-size: clamp(30px, 8.6vw, 40px); }
 .card .lead { font-family: var(--serif); font-variation-settings: "SOFT" 100, "opsz" 30; font-size: 19px; line-height: 1.42; margin: 0 0 12px; text-wrap: pretty; }
@@ -528,8 +529,13 @@ body.introing .legal-rail, body.onboarding .legal-rail { opacity: 0; pointer-eve
 
 /* ---------- Reading cards: plain headline, timing pill, kind lead, then the astrology in small print ---------- */
 .pill { display: inline-block; font-size: 13px; font-weight: 600; letter-spacing: .01em; color: var(--accent-ink); background: var(--accent); border-radius: 999px; padding: 6px 12px; margin: 0 0 14px; text-shadow: none; }
-.tech { margin: 6px 0 0; padding: 12px 14px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); text-shadow: none; }
-.tech-name { display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 600; color: var(--ink); margin: 0 0 4px; }
+.tech { margin: 6px 0 0; padding: 10px 14px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); text-shadow: none; }
+.tech-name { display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 600; color: var(--ink); margin: 0; min-height: 28px; cursor: pointer; list-style: none; }
+.tech-name::-webkit-details-marker { display: none; }
+.tech-name > span:not(.tech-glyphs):not(.tech-more) { flex: 1 1 auto; min-width: 0; }
+.tech-more { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--line); display: grid; place-items: center; font-weight: 400; font-size: 15px; line-height: 1; color: var(--ink-soft); transition: transform .25s var(--ease); }
+.tech[open] .tech-more { transform: rotate(45deg); }
+.tech[open] .tech-text { margin-top: 8px; }
 .tech-glyphs { display: inline-flex; gap: 6px; font-size: 18px; font-family: "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols", serif; font-weight: 400; }
 .tech-glyphs .asp { color: var(--accent); font-size: 14px; align-self: center; }
 .tech-text { font-size: 12.5px; line-height: 1.5; color: var(--ink-soft); margin: 0; }
@@ -578,3 +584,42 @@ a.menu-item { text-decoration: none; color: inherit; }
 .icon-btn svg.line-icon { fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .card-actions .row .ghost { flex: 1; min-width: 0; line-height: 1.2; }
 .card-actions .row > :only-child { grid-column: 1 / -1; }
+
+/* ---------- Personal thread on transit cards ---------- */
+.thread { font-family: var(--serif); font-style: italic; font-size: 16px; line-height: 1.45; color: var(--ink-soft); margin: -2px 0 16px; padding-left: 12px; border-left: 2px solid color-mix(in srgb, var(--accent) 55%, transparent); }
+
+/* ---------- A question to sit with ---------- */
+.card-title.question { font-style: italic; }
+.lead.soft { color: var(--ink-soft); font-size: 16px; }
+.release-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: auto; padding: 13px 22px; }
+.release-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.card-reflect .card-actions { align-items: flex-start; }
+
+/* ---------- Letting go ---------- */
+.release {
+  position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+  padding: calc(var(--safe-top, 0px) + 24px) max(22px, env(safe-area-inset-right)) calc(var(--safe-bottom, 0px) + 24px) max(22px, env(safe-area-inset-left));
+  background: radial-gradient(70% 50% at 50% 30%, rgba(184, 164, 255, .22), transparent 70%), rgba(14, 8, 30, .78);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); color: #F7F2FB; animation: fade .4s both;
+}
+.release-inner { width: 100%; max-width: 420px; display: flex; flex-direction: column; }
+.release-inner > div { display: flex; flex-direction: column; gap: 14px; }
+.release .kicker { color: rgba(247, 242, 251, .65); margin: 0; }
+.release-title { font-family: var(--serif); font-weight: 400; font-variation-settings: "SOFT" 100, "opsz" 72; font-size: 32px; line-height: 1.12; margin: 0; letter-spacing: -.01em; }
+.release textarea { width: 100%; min-height: 128px; resize: none; border-radius: 18px; border: 1px solid rgba(247, 242, 251, .2); background: rgba(255, 255, 255, .07); color: #F7F2FB; padding: 16px; font: 400 17px/1.5 var(--sans); }
+.release textarea::placeholder { color: rgba(247, 242, 251, .45); }
+.release textarea:focus { outline: none; border-color: rgba(184, 164, 255, .7); }
+.release-note { margin: 0; font-size: 14px; color: rgba(247, 242, 251, .65); }
+.release .text-btn { align-self: center; color: rgba(247, 242, 251, .7); }
+.release .ghost { color: #F7F2FB; border-color: rgba(247, 242, 251, .25); }
+.release-words { min-height: 128px; font: 400 22px/1.5 var(--serif); text-align: center; padding: 16px 0; }
+.release-words span { display: inline-block; white-space: pre; will-change: transform, opacity, filter; }
+.release.done #releaseAfter { animation: fade .8s both; text-align: center; align-items: center; }
+
+/* ---------- Did your last reading feel true? ---------- */
+.resonance { margin: 0 0 18px; padding: 14px 16px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); }
+.resonance p { margin: 0 0 10px; font-size: 15px; color: var(--ink-soft); }
+.res-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.res-row button { flex: 1 1 auto; min-height: 40px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--ink); font: 500 14.5px var(--sans); padding: 8px 12px; cursor: pointer; }
+.res-row button:active { background: var(--surface); }
+.resonance .res-thanks { margin: 0; color: var(--ink); }

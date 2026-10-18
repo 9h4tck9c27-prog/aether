@@ -2,7 +2,7 @@ import { CITIES, MOOD_WORDS } from "./data.js";
 import { buildDeck, consultSteps } from "./reading.js";
 import { pickBy, HOME_HEADLINES, HOME_SUPPORT, ASPECT_WORD, CLOSING_LINES, weatherShort } from "./voice.js";
 import {
-  natalChart, todaySignals, homeForecast, positions, writeReading, conditionOf, CONDITIONS, signOf, nakshatraOf, dayKey, moonPhase,
+  natalChart, todaySignals, homeForecast, positions, writeReading, conditionOf, CONDITIONS, signOf, nakshatraOf, dayKey, moonPhase, findThemes,
 } from "./astro.js";
 import { Sky } from "./sky3d.js";
 
@@ -305,13 +305,16 @@ function heavyStreak() {
   return n;
 }
 function beginReading(feel, text) {
-  const r = writeReading({ feel, chips: [], text, natal, profile, kp });
-  const entry = { id: Date.now(), day: dayKey(), feel, chips: [], text: text.trim(), headline: r.headline, cond: r.cond, bottled: false };
+  const r = writeReading({ feel, chips: [], text, natal, profile, kp, tuning: prefs.resonance || {} });
+  // Earlier days, for noticing patterns (themes are worked out on this phone and never sent).
+  const history = entries.filter(e => e.day !== dayKey()).map(e => ({ day: e.day, feel: e.feel, themes: e.themes || findThemes(e.text) }));
+  const entry = { id: Date.now(), day: dayKey(), feel, chips: [], text: text.trim(), headline: r.headline, cond: r.cond, bottled: false,
+    themes: r.themes || [], planets: r.ranked.slice(0, 2).map(s => s.t) };
   entries.push(entry); store.set("entries", entries);
   let care = false;
   if (heavyStreak() >= 3 && store.get("careShown", "") !== dayKey()) { care = true; store.set("careShown", dayKey()); }
   countOnce("reading");
-  startReading(r, entry, { consult: true, care });
+  startReading(r, entry, { consult: true, care, history });
 }
 
 // ---------- Sheet ----------
@@ -350,8 +353,29 @@ addEventListener("keydown", e => {
 
 // ---------- Check-in ----------
 const moodWord = v => MOOD_WORDS[Math.min(MOOD_WORDS.length - 1, Math.floor(v * MOOD_WORDS.length))];
+// Did the last reading feel true? Asked once, the next time they check in. Kept on this phone and used to tune future readings.
+function resonancePrompt() {
+  const last = [...entries].reverse().find(e => e.day !== dayKey());
+  if (!last || last.resonance || !last.planets || (Date.now() - last.id) > 4 * 864e5) return "";
+  return `<div class="resonance" id="resonance"><p>Did your last reading feel true?</p><div class="res-row">
+    <button type="button" data-res="yes">Yes</button><button type="button" data-res="little">A little</button><button type="button" data-res="no">Not really</button></div></div>`;
+}
+function bindResonance() {
+  const box = $("#resonance"); if (!box) return;
+  box.querySelectorAll("[data-res]").forEach(b => (b.onclick = () => {
+    const last = [...entries].reverse().find(e => e.day !== dayKey());
+    if (!last) return;
+    last.resonance = b.dataset.res; store.set("entries", entries);
+    const w = { yes: 1, little: 0.4, no: -0.6 }[b.dataset.res];
+    prefs.resonance = prefs.resonance || {};
+    for (const p of last.planets || []) prefs.resonance[p] = Math.max(-3, Math.min(3, (prefs.resonance[p] || 0) + w));
+    store.set("prefs", prefs);
+    box.innerHTML = `<p class="res-thanks">${b.dataset.res === "no" ? "Thank you. æther will listen more closely." : "Thank you. That helps æther know you."}</p>`;
+  }));
+}
 function openCheckin() {
   openSheet(`
+    ${resonancePrompt()}
     <h2 id="sheetTitle">How's today?</h2>
     <p class="feel-word" id="feelWord"></p>
     <input class="feel-range" id="feel" type="range" min="0" max="100" value="55" aria-label="How today feels, from heavy to golden">
@@ -368,6 +392,7 @@ function openCheckin() {
     tint.style.opacity = Math.abs(v - 0.5) * 1.6;
   };
   feel.oninput = update; update();
+  bindResonance();
   $("#readBtn").onclick = () => {
     const text = $("#words").value;
     closeSheet();
@@ -379,14 +404,14 @@ function openCheckin() {
 let reading = null;
 const CONSULT_STEP_MS = 1150;
 
-function startReading(r, entry, { consult = true, care = false } = {}) {
+function startReading(r, entry, { consult = true, care = false, history = [] } = {}) {
   document.body.classList.add("reading-mode");
   sky.clip = false;
   $("#stage").hidden = false;
   $("#cards").hidden = true; $("#cards").innerHTML = ""; $("#bars").innerHTML = "";
   sky.setSky(r.sig.sky);
   requestAnimationFrame(() => updateSlot());
-  reading = { r, entry, deck: buildDeck(r, natal, kp, { weather, care }), index: -1 };
+  reading = { r, entry, deck: buildDeck(r, natal, kp, { weather, care, history, feelWord: moodWord(r.feel), name: profile.name || "" }), index: -1 };
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (!consult || reduced) { $("#consult").hidden = true; showDeck(); return; }
 
@@ -435,7 +460,8 @@ function moonSvg(phase) {
 function techBlock(tech) {
   if (!tech) return "";
   const glyphs = tech.glyphs ? `<span class="tech-glyphs" aria-hidden="true">${tech.glyphs.map((g, i) => `<span${i === 1 ? ' class="asp"' : ""}>${g}</span>`).join("")}</span>` : "";
-  return `<div class="tech"><p class="tech-name">${glyphs}${esc(tech.name)}</p><p class="tech-text">${esc(tech.text)}</p></div>`;
+  // The astrology sits behind a small toggle, so the card reads cleanly and the detail is one tap away.
+  return `<details class="tech"><summary class="tech-name">${glyphs}<span>${esc(tech.name)}</span><span class="tech-more" aria-hidden="true">+</span></summary><p class="tech-text">${esc(tech.text)}</p></details>`;
 }
 
 function renderCard(c, i, r) {
@@ -454,7 +480,13 @@ function renderCard(c, i, r) {
       + rv(`<h2 class="card-title">${esc(c.title)}</h2>`, d++)
       + rv(`<p class="pill">${esc(c.pill)}</p>`, d++)
       + rv(`<p class="lead">${esc(c.lead)}</p>`, d++)
+      + (c.thread ? rv(`<p class="thread">${esc(c.thread)}</p>`, d++) : "")
       + rv(techBlock(c.tech), d++);
+  } else if (c.type === "reflect") {
+    inner = kicker
+      + rv(`<h2 class="card-title big question">${esc(c.title)}</h2>`, d++)
+      + rv(`<p class="lead soft">${esc(c.lead)}</p>`, d++)
+      + rv(`<div class="card-actions"><button class="ghost release-btn" data-act="release"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V7M7 11l5-5 5 5"/><circle cx="12" cy="4" r=".6"/></svg>Let something go</button></div>`, d++);
   } else if (c.type === "moon") {
     inner = kicker
       + rv(`<div class="moon-row">${moonSvg(c.phase)}<h2 class="card-title">${esc(c.title)}</h2></div>`, d++)
@@ -499,7 +531,7 @@ function showDeck() {
   setActive(0);
   // Tap anywhere to continue; tap the left edge to go back. Swiping also works.
   cards.onclick = e => {
-    if (e.target.closest("button, a, input, label, textarea")) return;
+    if (e.target.closest("button, a, input, label, textarea, summary, details")) return;
     if (e.clientX / innerWidth < 0.22) goCard(-1); else goCard(1);
   };
   let sx = null, sy = null;
@@ -510,6 +542,7 @@ function showDeck() {
     if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.3) { e.preventDefault(); goCard(dx < 0 ? 1 : -1); }
   };
   cards.querySelectorAll("[data-act]").forEach(b => (b.onclick = () => cardAction(b)));
+  cards.querySelectorAll("details.tech").forEach(d => d.addEventListener("toggle", () => fitCards()));
 }
 
 // Every card fits on one screen: if its text is taller than the space, scale it down a little.
@@ -568,6 +601,7 @@ function cardAction(b) {
   if (act === "next") return goCard(1);
   if (act === "share") return shareCard(reading.r, reading.deck);
   if (act === "breathe") return startRitual();
+  if (act === "release") return startRelease();
   if (act === "done") return endReading();
   if (act === "install") return openInstall();
   if (act === "save") {
@@ -613,6 +647,37 @@ function startRitual() {
   };
   step();
   $("#ritualDone").onclick = () => { stopped = true; el.hidden = true; if (!reading) maybeAskInstall(); };
+}
+
+// ---------- Letting go: type it, watch it drift up into the sky and dissolve ----------
+function startRelease() {
+  const el = $("#release"), box = $("#releaseText"), stage = $("#releaseWords"), go = $("#releaseGo");
+  el.hidden = false; el.classList.remove("done");
+  box.value = ""; box.hidden = false; stage.innerHTML = ""; stage.hidden = true;
+  $("#releaseAfter").hidden = true; $("#releaseForm").hidden = false;
+  setTimeout(() => box.focus({ preventScroll: true }), 300);
+  const close = () => { el.hidden = true; box.value = ""; stage.innerHTML = ""; };
+  $("#releaseCancel").onclick = close; $("#releaseDone").onclick = close;
+  go.onclick = () => {
+    const text = box.value.trim();
+    if (!text) return box.focus();
+    box.blur(); box.value = "";                                // never kept, never sent
+    $("#releaseForm").hidden = true; stage.hidden = false;
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    stage.innerHTML = [...text].map(ch => ch === " " ? " " : `<span>${esc(ch)}</span>`).join("");
+    const spans = [...stage.querySelectorAll("span")];
+    const total = Math.min(1400, spans.length * 14);
+    spans.forEach((sp, i) => {
+      if (reduced) { sp.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 1200, fill: "forwards" }); return; }
+      const dx = (Math.random() - 0.5) * 140, dy = -(180 + Math.random() * 260), rot = (Math.random() - 0.5) * 50;
+      sp.animate([
+        { transform: "translate(0,0) rotate(0)", opacity: 1, filter: "blur(0)" },
+        { transform: `translate(${dx * 0.4}px, ${dy * 0.35}px) rotate(${rot * 0.4}deg)`, opacity: 0.9, filter: "blur(.5px)", offset: 0.35 },
+        { transform: `translate(${dx}px, ${dy}px) rotate(${rot}deg) scale(.4)`, opacity: 0, filter: "blur(6px)" },
+      ], { duration: 2200, delay: (i / Math.max(1, spans.length)) * total, easing: "cubic-bezier(.3,.1,.3,1)", fill: "forwards" });
+    });
+    setTimeout(() => { sky.bloom(); stage.innerHTML = ""; stage.hidden = true; $("#releaseAfter").hidden = false; el.classList.add("done"); }, total + 2000);
+  };
 }
 
 // ---------- Share card ----------

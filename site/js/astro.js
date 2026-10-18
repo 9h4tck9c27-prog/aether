@@ -238,7 +238,7 @@ function echoFor(top, seed) {
 }
 
 // The full check-in reading.
-export function writeReading({ feel, chips, text, natal, profile, kp, now = new Date() }) {
+export function writeReading({ feel, chips, text, natal, profile, kp, now = new Date(), tuning = {} }) {
   const sig = todaySignals(natal, now);
   const bucket = feel < 0.42 ? "heavy" : feel > 0.62 ? "golden" : "mixed";
   const seed = Math.floor(now.getTime() / 3.6e6) + Math.round(feel * 10) + (text || "").length;
@@ -247,7 +247,9 @@ export function writeReading({ feel, chips, text, natal, profile, kp, now = new 
   // Prefer signals whose tone matches how the person feels, so the reading explains their day.
   const wantHarmony = bucket === "heavy" ? -1 : bucket === "golden" ? 1 : 0;
   const ranked = [...sig.personal].sort((a, b) => {
-    const fit = s => (wantHarmony === 0 ? 0 : (Math.sign(s.asp.harmony) === wantHarmony ? 0.5 : s.asp.harmony === 0 ? 0.25 : 0));
+    // Planets whose readings felt true to this person before get a gentle nudge up (learned on this phone only).
+    const learned = s => 0.12 * Math.max(-1, Math.min(1, (tuning[s.t] || 0) / 3));
+    const fit = s => (wantHarmony === 0 ? 0 : (Math.sign(s.asp.harmony) === wantHarmony ? 0.5 : s.asp.harmony === 0 ? 0.25 : 0)) + learned(s);
     return (b.score + fit(b)) - (a.score + fit(a));
   });
   const why = ranked.slice(0, 2).map(signalSentence);

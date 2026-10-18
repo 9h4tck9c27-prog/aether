@@ -209,11 +209,11 @@ export const PLAIN_SINGULAR = new Set(["Sun", "Pluto"]);
 export const FEEL_BRIDGE = {
   heavy: {
     1: ["Even on a hard day, this is support you can lean on.", "It's a quiet ally, even if today doesn't feel like it.", "Something is on your side, even now."],
-    "-1": ["That might be part of why today feels heavy. It's real, and it will pass.", "So if today feels hard, there's a reason. It won't last forever.", "That pressure is real, and so is your strength to meet it."],
+    "-1": ["That might be part of why today feels heavy. It's real, and it will pass.", "So if today feels hard, there's a reason. It won't last forever.", "That weight is real, and so is your strength to meet it."],
     0: ["That intensity may be part of the weight you're carrying.", "No wonder everything feels like a lot today.", "That can make feelings hit harder than usual."],
   },
   mixed: {
-    1: ["This is the steady part of your day.", "Lean on this when the rest feels uncertain.", "This is the bit that's working. Notice it."],
+    1: ["This is the steady part of your day.", "Lean on this when the rest feels uncertain.", "This is the bit that's going right. Notice it."],
     "-1": ["That might explain the static in your day.", "That may be why things feel slightly off.", "Some of today's friction might come from here."],
     0: ["It can make a day feel full and hard to read.", "It might explain why today feels like a lot of things at once.", "It adds a strong flavour to an in-between day."],
   },
@@ -343,7 +343,7 @@ export const THEME_PLAIN = {
   love: { heavy: "Matters of the heart feel louder today. Go gently with yourself and with them.", mixed: "Love is asking for honest, simple words today.", golden: "Your heart has good weather today. Say the warm thing." },
   family: { heavy: "Family can press on old bruises. Distance is allowed.", mixed: "Family weather is changeable today. Small kindnesses carry far.", golden: "Family feels close and warm. Let it in." },
   friends: { heavy: "Lean on the people who make you feel lighter.", mixed: "A friend may hold the missing piece of today.", golden: "Good company makes a good day even better." },
-  body: { heavy: "Your body is part of the weather. Rest counts as doing something.", mixed: "Listen to what your body asks for first today.", golden: "You've got energy to spend. Spend some on joy." },
+  body: { heavy: "Your body is part of the weather. Rest counts as doing something.", mixed: "Listen to what your body asks for first today.", golden: "You've got energy to spare. Use some of it on joy." },
   mind: { heavy: "Loud thoughts are louder on hard days. They're weather, not truth.", mixed: "Your mind is busy. Write one thing down and let the rest pass.", golden: "A clear mind is a gift. Use it on something you love." },
   money: { heavy: "Money worries feel heavier today. One practical step is enough.", mixed: "Keep money choices simple today.", golden: "Good news around money deserves a small celebration." },
   creative: { heavy: "Even heavy days feed the work. Make something small with it.", mixed: "Make something rough today. The sky likes a first draft.", golden: "Creative light is pouring in. Follow it." },

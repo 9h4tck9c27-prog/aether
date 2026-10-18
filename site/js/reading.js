@@ -2,6 +2,7 @@
 // Big text is plain and human; astrology terms sit in the small print with a definition.
 import { lonOf, sep, ayanamsa, signOf } from "./astro.js";
 import { PLANET_GLYPHS, NAKSHATRA_LORE } from "./data.js";
+import { threadLine, PLANET_ROLE, ROLE_VERB, NATAL_PLAIN, CONCRETE, timingLine, arcPill, memoryLine, echoTitle, questionFor, PHASE_MEANING, moonNext } from "./story.js";
 import {
   pickBy, TRANSIT_HEADLINES, TRANSIT_PLAIN, FEEL_BRIDGE, PLAIN_PLANET, PLAIN_NATAL, ASPECT_DEFS, ASPECT_WORD,
   NATAL_DEF, RISING_DEF, timingPill, NAKSHATRA_PLAIN, togetherPlain, spaceWeatherPlain, CLOSING_LINES,
@@ -16,29 +17,49 @@ const proper = p => (p === "Sun" || p === "Moon" ? `the ${p}` : p);
 const hours = n => (n === 1 ? "an hour" : `${n} hours`);
 function ordinal(n) { const s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
 
-// Is the aspect still building or easing off, and roughly when is it exact?
-function timing(s, natal, now) {
+// Is the aspect still building or easing off, when did it start, and when does it fade?
+function arc(s, natal, now) {
   const target = s.n === "Ascendant" ? natal.asc : natal.pos[s.n].lon;
+  const maxOrb = s.t === "Moon" ? 5 : s.t === "Sun" ? 3 : 2.5;
   const orbAt = d => Math.abs(sep(lonOf(s.t, d), target) - s.asp.angle);
   const o0 = orbAt(now), o1 = orbAt(new Date(now.getTime() + 864e5));
   const speed = Math.abs(o0 - o1);
-  if (o1 < o0 && speed > 0.001) return { days: o0 / speed, building: true };
-  return { days: o0 < 0.3 ? 0 : null, building: false };
+  const t = (o1 < o0 && speed > 0.001) ? { days: o0 / speed, building: true } : { days: o0 < 0.3 ? 0 : null, building: false };
+  if (s.t === "Moon") {
+    let h = 0; while (h < 48 && orbAt(new Date(now.getTime() + h * 36e5)) <= maxOrb) h++;
+    return { ...t, hours: true, endHours: h, end: new Date(now.getTime() + h * 36e5) };
+  }
+  const D = 864e5, cap = 150;
+  let back = 0; while (back < cap && orbAt(new Date(now.getTime() - (back + 1) * D)) <= maxOrb) back++;
+  let fwd = 0; while (fwd < cap && orbAt(new Date(now.getTime() + (fwd + 1) * D)) <= maxOrb) fwd++;
+  let best = Infinity, peak = now;
+  for (let i = -back; i <= fwd; i++) { const d = new Date(now.getTime() + i * D), o = orbAt(d); if (o < best) { best = o; peak = d; } }
+  return { ...t, start: back > 0 ? new Date(now.getTime() - back * D) : null, end: fwd < cap ? new Date(now.getTime() + fwd * D) : null, peak };
 }
 
-function transitCard(s, r, natal, seed) {
+function transitCard(s, r, natal, seed, opts) {
   const h = String(Math.sign(s.asp.harmony));
   const n = PLAIN_NATAL[s.n];
-  const t = timing(s, natal, r.now);
+  const a = arc(s, natal, r.now);
   const headline = pickBy(TRANSIT_HEADLINES[s.t][h], seed).replace("{n}", n);
-  const plain = pickBy(TRANSIT_PLAIN[h], seed + 1).replace("{P}", cap(PLAIN_PLANET[s.t])).replace("{is}", PLAIN_SINGULAR.has(s.t) ? "is" : "are").replace("{n}", n);
+  const meaning = `${PLANET_ROLE[s.t]} ${pickBy(ROLE_VERB[h], seed + 1)} ${NATAL_PLAIN[s.n]}.`;
+  const concrete = pickBy(CONCRETE[s.n][h], seed + 2);
+  const when = timingLine(a, r.now);
+  // On the first card, say how this connects to the way they said today feels.
+  const bridge = opts.first ? pickBy(FEEL_BRIDGE[r.bucket][h], seed + 3) : "";
   const point = s.n === "Ascendant" ? "your rising sign" : `your natal ${s.n}`;
+  let thread = null;
+  if (["Sun", "Moon", "Ascendant"].includes(s.n) && !opts.threads.has(s.n)) {
+    const lon = s.n === "Ascendant" ? natal.asc : natal.pos[s.n].lon;
+    if (lon != null) { thread = threadLine(s.n, signOf(lon)); opts.threads.add(s.n); }
+  }
   return {
     type: "transit",
     kicker: s.n === "Ascendant" ? "How you come across" : `About ${n}`,
     title: headline,
-    pill: timingPill(t.days, t.building),
-    lead: `${plain} ${pickBy(FEEL_BRIDGE[r.bucket][h], seed + 2)}`,
+    pill: arcPill(a, r.now),
+    lead: [meaning, concrete, when, bridge].filter(Boolean).join(" "),
+    thread,
     tech: {
       glyphs: [glyph(s.t), ASPECT_GLYPH[s.asp.name], glyph(s.n)],
       name: `${cap(proper(s.t))} ${ASPECT_WORD[s.asp.name]} ${point}`,
@@ -58,7 +79,7 @@ function moonCard(r) {
     kicker: "Tonight's Moon",
     title: NAKSHATRA_PLAIN[nak.index],
     pill: `${sig.phase.name}, ${Math.round(sig.phase.illum * 100)}% lit`,
-    lead: `The Moon changes signs every two or three days, and the mood of the world shifts with her. Her next move is in about ${hours(sig.moonLeft)}.`,
+    lead: `${sig.phase.name === "New Moon" ? "Tonight is a new moon" : sig.phase.name === "Full Moon" ? "Tonight the Moon is full" : `The Moon is in her ${sig.phase.name.toLowerCase()} phase`}: ${PHASE_MEANING[sig.phase.name] || "a time to listen inward"}. She changes signs ${moonNext(sig.moonLeft)}, and the mood shifts with her.`,
     phase: sig.phase,
     tech: {
       name: `Moon in ${nak.name}, ${nak.gloss}`,
@@ -92,27 +113,43 @@ function closingLine(r) {
   return pickBy(CLOSING_LINES[r.bucket], seed);
 }
 
-export function buildDeck(r, natal, kp, { weather = null, care = false } = {}) {
+const OPEN_SOFT = {
+  heavy: ["Whatever happened, you don't have to carry it alone tonight.", "Hard days are part of the weather, not a verdict on you."],
+  mixed: ["Some days are a bit of everything. That's allowed.", "Not every day needs a single word. Here's what's in the air."],
+  golden: ["Good days deserve to be noticed. Here's where the light is coming from.", "Let yourself enjoy this one. Here's what's helping."],
+};
+
+export function buildDeck(r, natal, kp, { weather = null, care = false, history = [], feelWord = "", name = "" } = {}) {
   const seed = Math.floor(r.now.getTime() / 36e5);
   const theme = (r.themes || [])[0];
+  const today = { day: r.now.toISOString().slice(0, 10), feel: r.feel };
+  const memory = memoryLine(history, today, r.themes || []);
+  const memoryIsTheme = memory && /this week\. It's clearly on your heart/.test(memory);
+  const second = theme && !memoryIsTheme ? THEME_PLAIN[theme][r.bucket] : (memory ? "" : pickBy(OPEN_SOFT[r.bucket], seed));
   const cards = [{
     type: "open",
     kicker: r.now.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" }),
-    title: r.headline,
+    title: feelWord ? echoTitle(r.bucket, feelWord, name, seed) : r.headline,
     quote: r.quote,
-    lead: theme ? THEME_PLAIN[theme][r.bucket] : pickBy(OPEN_LINES[r.bucket], seed),
+    lead: [memory, second].filter(Boolean).join(" "),
     weather: weather && weather.temp != null
       ? { short: weatherShort(weather), line: pickBy(WEATHER_LINES[r.bucket][weatherKind(weather.symbol)], seed) }
       : null,
     focus: { wide: true, natalGlow: true },
   }];
   const day = Math.floor(r.now.getTime() / 864e5);
-  r.ranked.slice(0, 2).forEach((s, i) => cards.push(transitCard(s, r, natal, day + i * 7)));
+  const threads = new Set();
+  const picks = [];
+  for (const s of r.ranked) { if (!picks.length || (picks.length < 2 && s.n !== picks[0].n)) picks.push(s); if (picks.length === 2) break; }
+  if (picks.length < 2 && r.ranked[1]) picks.push(r.ranked[1]);
+  picks.forEach((s, i) => cards.push(transitCard(s, r, natal, day + i * 7, { first: i === 0, threads })));
   cards.push(moonCard(r));
   // Only show "people near you" when there are enough real check-ins to count.
   if (r.crowd && r.crowd.count >= MIN_CROWD) cards.push(togetherCard(r, kp));
   // A few heavy days in a row: a gentle, skippable note with a way to reach a real person.
   if (care) cards.push({ type: "care", ...CARE, help: careLine(), focus: { wide: true } });
+  cards.push({ type: "reflect", kicker: "A question to sit with", title: questionFor(r.bucket, r.themes || [], day + Math.round(r.feel * 10)),
+    lead: "No need to answer here. Let it keep you company tonight.", focus: { wide: true, natalGlow: true } });
   const line = closingLine(r);
   const links = [
     ...r.ranked.slice(0, 3).map(s => [["sky", s.t], ["natal", s.n]]),
