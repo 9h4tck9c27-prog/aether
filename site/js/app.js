@@ -587,11 +587,14 @@ function showDeck() {
 function fitCards() {
   document.querySelectorAll("#cards .card").forEach(card => {
     const inner = card.querySelector(".card-inner"), content = card.querySelector(".card-content");
-    content.style.zoom = 1;
+    content.style.zoom = 1; inner.classList.remove("scrolls");
     const cs = getComputedStyle(inner);
     const avail = inner.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
     const h = content.offsetHeight;
-    content.style.zoom = h > avail ? Math.max(0.7, avail / h).toFixed(3) : 1;
+    // Shrink a little if needed, but never so much the text gets hard to read; past that, the card scrolls.
+    const z = h > avail ? Math.max(0.9, avail / h) : 1;
+    content.style.zoom = z.toFixed(3);
+    if (h * z > avail + 1) inner.classList.add("scrolls");
   });
 }
 addEventListener("resize", () => { if (reading && reading.consultDone !== false) { fitCards(); const el = document.querySelectorAll("#cards .card")[reading.index]; if (el) placeScrim(el); } });

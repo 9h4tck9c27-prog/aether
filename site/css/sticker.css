@@ -293,3 +293,25 @@ body.tone-real .card-title:not(.question), body.tone-real .forecast-text, body.t
 @media (max-height: 720px) { .card-inner { padding-top: calc(var(--safe-top) + 24svh); } }
 .onboard { padding-top: calc(var(--safe-top) + 32px); }
 body.reading-mode .sphere-wrap { top: calc(var(--safe-top) + 64px); }
+
+/* Bigger, easier text on the reading cards: the card can rise further over the globe,
+   and the paper is slightly see-through so the sky still shows behind it. */
+.card-inner { padding-top: calc(var(--safe-top) + 84px); padding-bottom: calc(var(--safe-bottom) + 84px); }
+@media (max-height: 720px) { .card-inner { padding-top: calc(var(--safe-top) + 70px); } }
+.card-close .card-inner, .card-open .card-inner { padding-bottom: calc(var(--safe-bottom) + 18px); }
+.card-inner.scrolls { justify-content: flex-start; overflow-y: auto; overscroll-behavior: contain; }
+.card-content {
+  background: rgba(255, 255, 255, .86);
+  -webkit-backdrop-filter: blur(5px) saturate(1.1); backdrop-filter: blur(5px) saturate(1.1);
+}
+.stage[data-card="ahead"] .card-content { background: rgba(221, 247, 236, .88); }
+.card .lead { font-size: 18px; line-height: 1.5; color: #1E1B26; }
+.card-title { font-size: clamp(24px, 7vw, 30px); }
+.card-title.big { font-size: clamp(27px, 8vw, 33px); }
+.thread { font-size: 24px; }
+.tech-name { font-size: 14.5px; }
+.tech-text { font-size: 14px; }
+.ahead-list b { font-size: 17px; }
+.ahead-text { font-size: 15.5px; }
+.pill { font-size: 14px; }
+.next-hint { bottom: calc(var(--safe-bottom) + 14px); }
