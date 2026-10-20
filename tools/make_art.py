@@ -1,4 +1,4 @@
-"""Render Æther's icons and link-preview image from tools/art.html with headless Chromium."""
+"""Render æther's icons and link-preview image from tools/art.html with headless Chromium."""
 import pathlib, sys
 from playwright.sync_api import sync_playwright
 

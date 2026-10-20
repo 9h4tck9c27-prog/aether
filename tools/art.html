@@ -1,98 +1,89 @@
 <!doctype html>
 <html><head><meta charset="utf-8">
+<!-- æther icons and link-preview images, Sticker club direction. Rendered by tools/make_art.py. -->
 <style>
-@font-face { font-family: "Fraunces"; font-style: italic; font-weight: 400; src: url("../node_modules/@fontsource/fraunces/files/fraunces-latin-400-italic.woff2") format("woff2"); }
-@font-face { font-family: "Fraunces"; font-style: normal; font-weight: 400; src: url("../node_modules/@fontsource/fraunces/files/fraunces-latin-400-normal.woff2") format("woff2"); }
-@font-face { font-family: "Figtree"; font-weight: 500; src: url("../node_modules/@fontsource/figtree/files/figtree-latin-500-normal.woff2") format("woff2"); }
-@font-face { font-family: "Figtree"; font-weight: 600; src: url("../node_modules/@fontsource/figtree/files/figtree-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "Unbounded"; font-weight: 200 900; src: url("../site/fonts/unbounded-latin-wght-normal.woff2") format("woff2"); }
+@font-face { font-family: "DM Sans"; font-weight: 100 1000; src: url("../site/fonts/dm-sans-latin-wght-normal.woff2") format("woff2"); }
+@font-face { font-family: "Caveat"; font-weight: 700; src: url("../site/fonts/caveat-latin-700-normal.woff2") format("woff2"); }
 body { margin: 0; background: #000; }
 canvas { display: block; }
 </style></head>
 <body>
 <script>
-const BRAND = [[184,164,255],[158,230,212],[255,184,154],[247,200,232]];
-function brand(t) {
-  t = ((t % 1) + 1) % 1 * 4; const i = Math.floor(t), f = t - i, a = BRAND[i], b = BRAND[(i + 1) % 4];
-  const s = f * f * (3 - 2 * f);
-  return `rgb(${a.map((v, k) => Math.round(v + (b[k] - v) * s)).join(",")})`;
+const INK = "#141218", PINK = "#FF6FAE", YEL = "#FFD84D", MINT = "#6EE7B7", COB = "#3D3BFF", LILAC = "#E9E2FF";
+
+function ground(g, w, h, dots = true, col = LILAC) {
+  g.fillStyle = col; g.fillRect(0, 0, w, h);
+  if (!dots) return;
+  const step = Math.max(14, Math.round(Math.max(w, h) / 34));
+  g.fillStyle = "rgba(20,18,24,.08)";
+  for (let y = step / 2; y < h; y += step) for (let x = step / 2; x < w; x += step) { g.beginPath(); g.arc(x, y, step * 0.08, 0, 7); g.fill(); }
 }
-function ring(g, cx, cy, rx, ry, rot, w, alpha, off) {
-  const N = 240;
-  g.save(); g.translate(cx, cy); g.rotate(rot); g.lineWidth = w; g.lineCap = "round"; g.globalAlpha = alpha;
-  for (let i = 0; i < N; i++) {
-    const a0 = i / N * Math.PI * 2, a1 = (i + 1.4) / N * Math.PI * 2;
-    g.strokeStyle = brand(i / N + off); g.beginPath();
-    g.ellipse(0, 0, rx, ry, 0, a0, a1); g.stroke();
-  }
-  g.restore();
+// A sticker globe: cobalt ball with an ink outline and a white shine, a thick pink ring with an ink outline, outlined planet dots.
+function globe(g, cx, cy, R, { detail = true, shadow = 0, edge = INK } = {}) {
+  const lw = Math.max(1.5, R * 0.055);
+  const rx = R * 1.62, ry = R * 0.46, rot = -0.24;
+  const ring = (a0, a1) => {
+    g.save(); g.translate(cx, cy); g.rotate(rot); g.lineCap = "round";
+    g.strokeStyle = edge; g.lineWidth = R * 0.26; g.beginPath(); g.ellipse(0, 0, rx, ry, 0, a0, a1); g.stroke();
+    g.strokeStyle = PINK; g.lineWidth = R * 0.26 - lw * 2.2; g.beginPath(); g.ellipse(0, 0, rx, ry, 0, a0, a1); g.stroke();
+    g.restore();
+  };
+  const at = a => { const x = Math.cos(a) * rx, y = Math.sin(a) * ry; return [cx + x * Math.cos(rot) - y * Math.sin(rot), cy + x * Math.sin(rot) + y * Math.cos(rot)]; };
+  const dot = (a, r, col) => { const [x, y] = at(a); g.beginPath(); g.arc(x, y, r, 0, 7); g.fillStyle = col; g.fill(); g.lineWidth = lw * 0.9; g.strokeStyle = edge; g.stroke(); };
+  if (shadow) { g.fillStyle = edge; g.beginPath(); g.arc(cx + shadow, cy + shadow, R + lw / 2, 0, 7); g.fill(); }
+  ring(Math.PI * 1.02, Math.PI * 1.98);
+  if (detail) dot(Math.PI * 1.32, R * 0.13, MINT);
+  g.beginPath(); g.arc(cx, cy, R, 0, 7); g.fillStyle = COB; g.fill(); g.lineWidth = lw; g.strokeStyle = edge; g.stroke();
+  if (R > 20) { g.strokeStyle = "rgba(255,255,255,.55)"; g.lineWidth = R * 0.11; g.lineCap = "round"; g.beginPath(); g.arc(cx, cy, R * 0.72, Math.PI * 1.08, Math.PI * 1.44); g.stroke(); }
+  ring(-0.02, Math.PI + 0.02);
+  if (detail) { dot(Math.PI * 0.22, R * 0.17, YEL); dot(Math.PI * 0.72, R * 0.12, "#fff"); }
 }
-function glow(g, x, y, r, col = "255,255,255", a = 1) {
-  const gr = g.createRadialGradient(x, y, 0, x, y, r);
-  gr.addColorStop(0, `rgba(${col},${a})`); gr.addColorStop(0.25, `rgba(${col},${a * 0.7})`); gr.addColorStop(1, `rgba(${col},0)`);
-  g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+function spark(g, x, y, s, col) {
+  g.save(); g.translate(x, y); g.beginPath(); g.moveTo(0, -s);
+  g.bezierCurveTo(s * .1, -s * .3, s * .3, -s * .1, s, 0); g.bezierCurveTo(s * .3, s * .1, s * .1, s * .3, 0, s);
+  g.bezierCurveTo(-s * .1, s * .3, -s * .3, s * .1, -s, 0); g.bezierCurveTo(-s * .3, -s * .1, -s * .1, -s * .3, 0, -s);
+  g.fillStyle = col; g.fill(); g.lineWidth = Math.max(2, s * 0.11); g.lineJoin = "round"; g.strokeStyle = INK; g.stroke(); g.restore();
 }
-function sphere(g, cx, cy, R, detail = true) {
-  const halo = g.createRadialGradient(cx, cy, 0, cx, cy, R * 1.35);
-  halo.addColorStop(0, "rgba(184,164,255,.35)"); halo.addColorStop(1, "rgba(184,164,255,0)");
-  g.fillStyle = halo; g.beginPath(); g.arc(cx, cy, R * 1.35, 0, 7); g.fill();
-  ring(g, cx, cy, R * 0.98, R * 0.98, 0, R * 0.018, 0.45, 0.55);              // meridian circle
-  ring(g, cx, cy, R * 0.34, R * 0.98, 0, R * 0.016, 0.5, 0.85);               // meridian seen edge-on
-  ring(g, cx, cy, R, R * 0.36, 0.42, R * 0.022, 0.6, 0.3);                    // equator
-  ring(g, cx, cy, R, R * 0.36, -0.2, R * 0.05, 1, 0);                         // ecliptic, the hero ring
-  if (detail) {
-    const planets = [[0.4, 0.09, "255,217,168"], [2.3, 0.07, "255,194,214"], [3.6, 0.06, "158,230,212"], [5.2, 0.075, "247,242,251"]];
-    for (const [a, s, c] of planets) {
-      const x = Math.cos(a) * R, y = Math.sin(a) * R * 0.36;
-      const px = cx + x * Math.cos(-0.2) - y * Math.sin(-0.2), py = cy + x * Math.sin(-0.2) + y * Math.cos(-0.2);
-      glow(g, px, py, R * s * 2.2, c, 1);
-    }
-  }
-  glow(g, cx, cy, R * 0.32, "247,242,251", 1);
+function pill(g, x, y, text, font, padX, h, fill, rot = 0, shadow = 0) {
+  g.save(); g.translate(x, y); g.rotate(rot); g.font = font;
+  const w = g.measureText(text).width + padX * 2;
+  if (shadow) { g.beginPath(); g.roundRect(shadow, shadow, w, h, h / 2); g.fillStyle = INK; g.fill(); }
+  g.beginPath(); g.roundRect(0, 0, w, h, h / 2); g.fillStyle = fill; g.fill(); g.lineWidth = Math.max(3, h * 0.08); g.strokeStyle = INK; g.stroke();
+  g.fillStyle = INK; g.textBaseline = "middle"; g.fillText(text, padX, h / 2 + h * 0.03); g.restore();
+  return w;
 }
-function background(g, w, h) {
-  const bg = g.createRadialGradient(w * 0.5, h * 0.42, 0, w * 0.5, h * 0.5, Math.max(w, h) * 0.75);
-  bg.addColorStop(0, "#35225e"); bg.addColorStop(0.55, "#1C1230"); bg.addColorStop(1, "#0f0820");
-  g.fillStyle = bg; g.fillRect(0, 0, w, h);
-}
-function stars(g, w, h, n, seed = 7) {
-  let s = seed; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
-  for (let i = 0; i < n; i++) { g.fillStyle = `rgba(255,255,255,${rnd() * 0.6 + 0.15})`; g.beginPath(); g.arc(rnd() * w, rnd() * h, rnd() * Math.max(w, h) / 900 + 0.4, 0, 7); g.fill(); }
-}
+
 function make(kind, size) {
   const [w, h] = kind === "og" ? [1200, 630] : kind === "square" ? [1200, 1200] : [size, size];
   const c = document.createElement("canvas"); c.width = w; c.height = h; c.id = "art"; document.body.appendChild(c);
   const g = c.getContext("2d");
-  background(g, w, h);
   if (kind === "og") {
-    stars(g, w, h, 160);
-    sphere(g, 330, 315, 205);
-    g.fillStyle = "#F7F2FB"; g.font = 'italic 400 104px "Fraunces"'; g.fillText("æther", 610, 300);
-    g.fillStyle = "rgba(247,242,251,.82)"; g.font = '400 35px "Fraunces"'; g.fillText("Your daily astrological weather.", 614, 368);
-    g.fillStyle = "rgba(247,242,251,.6)"; g.font = '500 30px "Figtree"'; g.fillText("It's not just you.", 616, 430);
+    ground(g, w, h);
+    globe(g, 300, 330, 150, { shadow: 12 });
+    spark(g, 110, 110, 34, YEL); spark(g, 530, 520, 22, PINK);
+    g.fillStyle = INK; g.font = '800 128px "Unbounded"'; g.fillText("æther", 600, 300);
+    g.fillStyle = COB; g.font = '700 52px "Caveat"'; g.fillText("your daily astrological weather", 608, 372);
+    pill(g, 606, 420, "free · no account · every day", '700 26px "DM Sans"', 26, 58, YEL, -0.03, 6);
   } else if (kind === "square") {
-    // Big square link preview for iMessage: a large glowing sphere, the name, a question and a call to action.
-    stars(g, w, h, 260, 11);
-    const warm = g.createRadialGradient(w * 0.5, h * 1.05, 0, w * 0.5, h * 1.05, w * 0.85);
-    warm.addColorStop(0, "rgba(255,184,154,.42)"); warm.addColorStop(1, "rgba(255,184,154,0)");
-    g.fillStyle = warm; g.fillRect(0, 0, w, h);
-    sphere(g, w / 2, 440, 345);
-    g.textAlign = "center";
-    g.fillStyle = "#F7F2FB"; g.font = 'italic 400 150px "Fraunces"'; g.fillText("æther", w / 2, 950);
-    g.fillStyle = "rgba(247,242,251,.9)"; g.font = '400 50px "Fraunces"'; g.fillText("What is the sky saying about your day?", w / 2, 1030);
-    // Call-to-action pill
-    const label = "Get your free reading", pw = 470, ph = 74, px = w / 2 - pw / 2, py = 1068;
-    const grad = g.createLinearGradient(px, 0, px + pw, 0);
-    [["#B8A4FF", 0], ["#9EE6D4", .45], ["#FFB89A", 1]].forEach(([c, s]) => grad.addColorStop(s, c));
-    g.fillStyle = grad; g.beginPath(); g.roundRect(px, py, pw, ph, ph / 2); g.fill();
-    g.fillStyle = "#1C1230"; g.font = '600 32px "Figtree"'; g.fillText(label + "  ›", w / 2, py + 48);
+    ground(g, w, h);
+    globe(g, w / 2, 400, 230, { shadow: 16 });
+    spark(g, 170, 170, 48, YEL); spark(g, 1030, 640, 30, PINK); spark(g, 1010, 150, 22, MINT);
+    g.textAlign = "center"; g.fillStyle = INK; g.font = '800 160px "Unbounded"'; g.fillText("æther", w / 2, 860);
+    g.fillStyle = COB; g.font = '700 64px "Caveat"'; g.fillText("what's the sky saying about your day?", w / 2, 950);
+    g.textAlign = "left"; g.font = '700 38px "Unbounded"';
+    const label = "get your free reading  ›", pw = g.measureText(label).width + 88;
+    pill(g, w / 2 - pw / 2, 1010, label, '700 38px "Unbounded"', 44, 96, YEL, 0, 10);
   } else {
-    const safe = kind === "maskable" ? 0.62 : 0.78;
-    if (size >= 120) stars(g, w, h, Math.round(size / 9));
-    sphere(g, w / 2, h / 2, w * safe / 2, size >= 64);
+    const small = size <= 48;
+    ground(g, w, h, size >= 120);
+    const R = w * (kind === "maskable" ? 0.2 : small ? 0.27 : 0.25);
+    globe(g, w / 2 - w * 0.02, h / 2 + w * 0.01, R, { detail: !small, shadow: small ? 0 : R * 0.07 });
+    if (size >= 120 && kind !== "maskable") { spark(g, w * 0.18, h * 0.2, w * 0.07, YEL); spark(g, w * 0.83, h * 0.8, w * 0.045, PINK); }
   }
 }
 const q = new URLSearchParams(location.search);
-document.fonts.load('italic 400 104px "Fraunces"').then(() => document.fonts.load('500 30px "Figtree"')).then(() => document.fonts.load('600 32px "Figtree"')).then(() => document.fonts.load('400 40px "Fraunces"')).then(() => {
+Promise.all(['800 64px "Unbounded"', '700 30px "DM Sans"', '700 40px "Caveat"'].map(f => document.fonts.load(f))).then(() => {
   make(q.get("kind"), +q.get("size") || 512);
   document.title = "ready";
 });
