@@ -146,7 +146,8 @@ async function loadWeather() {
 // ---------- Anonymous counts: one ping per day per event, nothing that identifies you ----------
 function countOnce(e) {
   const day = dayKey(), seen = store.get("counted", {});
-  if (seen[e] === day || /^(localhost|127\.)/.test(location.hostname)) return;
+  // Test links (branch deploys like sticker--aetherize.netlify.app) are not counted.
+  if (seen[e] === day || /^(localhost|127\.)|--/.test(location.hostname)) return;
   seen[e] = day; store.set("counted", seen);
   try { fetch("/api/hit", { method: "POST", body: JSON.stringify({ e }), keepalive: true, headers: { "Content-Type": "application/json" } }).catch(() => { }); } catch { }
 }
