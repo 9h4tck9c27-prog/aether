@@ -1,7 +1,8 @@
 name: Instagram · post what's due
 on:
-  schedule:
-    - cron: "7,37 * * * *"   # every 30 minutes; the script posts each item once, at or after its London time
+  # Paused while æther moves to its new look. To resume, put these two lines back:
+  # schedule:
+  #   - cron: "7,37 * * * *"   # every 30 minutes; the script posts each item once, at or after its London time
   workflow_dispatch:
 concurrency: { group: social-post, cancel-in-progress: false }
 permissions: { contents: write }

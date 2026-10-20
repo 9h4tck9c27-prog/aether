@@ -1,8 +1,9 @@
 name: Instagram · weekly render and Sunday brief
 on:
-  schedule:
-    - cron: "15 8 * * 0"    # Sunday 09:15 BST / 08:15 GMT: render, then email at 11:00 London
-    - cron: "40 10 * * 0"   # safety net: sends the brief if the first run failed
+  # Paused while æther moves to its new look. To resume, put these lines back:
+  # schedule:
+  #   - cron: "15 8 * * 0"    # Sunday 09:15 BST / 08:15 GMT: render, then email at 11:00 London
+  #   - cron: "40 10 * * 0"   # safety net: sends the brief if the first run failed
   push:
     branches: [main]
     paths: [".github/triggers/weekly-now"]   # Claude can start a run by updating this file
