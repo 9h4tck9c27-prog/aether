@@ -285,3 +285,11 @@ body.tone-real .card-title:not(.question), body.tone-real .forecast-text, body.t
 .card-close .res-card[data-res-box] { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .card-close .res-card[data-res-box] > span { grid-column: 1 / -1; font-size: 13px; }
 .card-close .res-card button { min-height: 42px; padding: 6px 8px; }
+
+/* Keep the top controls clear of the area iOS blurs under the status bar */
+#app { padding-top: calc(var(--safe-top) + 20px); }
+.stage-top { padding-top: calc(var(--safe-top) + 24px); }
+.card-inner { padding-top: calc(var(--safe-top) + 32svh); }
+@media (max-height: 720px) { .card-inner { padding-top: calc(var(--safe-top) + 24svh); } }
+.onboard { padding-top: calc(var(--safe-top) + 32px); }
+body.reading-mode .sphere-wrap { top: calc(var(--safe-top) + 64px); }
