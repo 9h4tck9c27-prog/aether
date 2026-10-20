@@ -101,14 +101,14 @@ function requestMotion(quiet) {
   let req;
   try { req = DeviceOrientationEvent.requestPermission(); } catch { return; }
   req.then(r => {
-    if (r === "granted") { store.set("tiltOk", true); startTilt(); if (!quiet) toast("Tilt your phone to turn the sky."); }
-    else { store.set("tiltOk", false); $("#tiltBtn").hidden = true; store.set("tiltDenied", true); if (!quiet) toast("Motion is off, so drag the sky to turn it. You can allow motion in Safari's site settings."); }
+    if (r === "granted") { store.set("tiltOk", true); startTilt(); }
+    else { store.set("tiltOk", false); $("#tiltBtn").hidden = true; store.set("tiltDenied", true); }
   }).catch(() => { $("#tiltBtn").hidden = true; });
 }
 if (needsPermission) {
   if (store.get("tiltOk", false)) requestMotion(true); // re-grant silently where Safari allows it
   $("#tiltBtn").addEventListener("click", () => requestMotion(false));
-  // Tapping the sphere also asks, once.
+  // No prompt of our own: iPhone only asks for motion the first time someone touches the sphere, so tilting is a surprise.
   $("#sky").addEventListener("pointerup", () => { if (!tilting && !store.get("tiltDenied", false)) requestMotion(false); });
 } else if ("DeviceOrientationEvent" in window) startTilt();
 function showTiltHint() { return;
@@ -300,7 +300,6 @@ function startOnboarding() {
   };
   // Straight from the reveal into the first reading.
   ob.querySelector("[data-finish]").onclick = () => {
-    requestMotion(false);
     ob.hidden = true; document.body.classList.remove("onboarding");
     document.querySelector(".mood-tint").style.opacity = 0;
     renderHome();
@@ -1005,7 +1004,7 @@ function openTip(e) {
 }
 
 // ---------- Wiring ----------
-$("#checkinBtn").onclick = () => { requestMotion(true); openCheckin(); };
+$("#checkinBtn").onclick = () => openCheckin();
 $("#journalBtn").onclick = openJournal;
 $("#menuBtn").onclick = openMenu;
 document.addEventListener("click", e => { if (e.target.closest(".tip-link, .tip-btn")) openTip(e); });
