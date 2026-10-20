@@ -9,6 +9,7 @@ import {
   NATAL_DEF, RISING_DEF, timingPill, NAKSHATRA_PLAIN, togetherPlain, spaceWeatherPlain, CLOSING_LINES,
   THEME_PLAIN, OPEN_LINES, PLAIN_SINGULAR, WEATHER_LINES, weatherKind, weatherShort, CARE, careLine,
 } from "./voice.js";
+import { REAL_TRANSIT_HEADLINES, REAL_OPEN, REAL_CLOSING, REAL_QUESTIONS } from "./voice-real.js";
 
 const MIN_CROWD = 25;
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
@@ -42,7 +43,8 @@ function transitCard(s, r, natal, seed, opts) {
   const h = String(Math.sign(s.asp.harmony));
   const n = PLAIN_NATAL[s.n];
   const a = arc(s, natal, r.now);
-  const headline = pickBy(TRANSIT_HEADLINES[s.t][h], seed).replace("{n}", n);
+  const pool = opts.real && REAL_TRANSIT_HEADLINES[s.t] ? REAL_TRANSIT_HEADLINES[s.t] : TRANSIT_HEADLINES[s.t];
+  const headline = pickBy(pool[h], seed).replace("{n}", n);
   const meaning = `${PLANET_ROLE[s.t]} ${pickBy(ROLE_VERB[h], seed + 1)} ${NATAL_PLAIN[s.n]}.`;
   const concrete = pickBy(CONCRETE[s.n][h], seed + 2);
   const when = timingLine(a, r.now);
@@ -56,6 +58,7 @@ function transitCard(s, r, natal, seed, opts) {
   }
   return {
     type: "transit",
+    planet: s.t,
     kicker: s.n === "Ascendant" ? "How you come across" : `About ${n}`,
     title: headline,
     pill: arcPill(a, r.now),
@@ -109,9 +112,9 @@ function togetherCard(r, kp) {
   };
 }
 
-function closingLine(r) {
+function closingLine(r, real = false) {
   const seed = Math.floor(r.now.getTime() / 864e5) + (r.quote || "").length + Math.round(r.feel * 10);
-  return pickBy(CLOSING_LINES[r.bucket], seed);
+  return pickBy((real ? REAL_CLOSING : CLOSING_LINES)[r.bucket], seed);
 }
 
 const OPEN_SOFT = {
@@ -120,13 +123,14 @@ const OPEN_SOFT = {
   golden: ["Good days deserve to be noticed. Here's where the light is coming from.", "Let yourself enjoy this one. Here's what's helping."],
 };
 
-export function buildDeck(r, natal, kp, { weather = null, care = false, history = [], feelWord = "", name = "" } = {}) {
+export function buildDeck(r, natal, kp, { weather = null, care = false, history = [], feelWord = "", name = "", tone = "soft" } = {}) {
+  const real = tone === "real";
   const seed = Math.floor(r.now.getTime() / 36e5);
   const theme = (r.themes || [])[0];
   const today = { day: r.now.toISOString().slice(0, 10), feel: r.feel };
   const memory = memoryLine(history, today, r.themes || []);
   const memoryIsTheme = memory && /this week\. It's clearly on your heart/.test(memory);
-  const second = theme && !memoryIsTheme ? THEME_PLAIN[theme][r.bucket] : (memory ? "" : pickBy(OPEN_SOFT[r.bucket], seed));
+  const second = theme && !memoryIsTheme ? THEME_PLAIN[theme][r.bucket] : (memory ? "" : pickBy((real ? REAL_OPEN : OPEN_SOFT)[r.bucket], seed));
   const cards = [{
     type: "open",
     kicker: r.now.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" }),
@@ -143,7 +147,7 @@ export function buildDeck(r, natal, kp, { weather = null, care = false, history 
   const picks = [];
   for (const s of r.ranked) { if (!picks.length || (picks.length < 2 && s.n !== picks[0].n)) picks.push(s); if (picks.length === 2) break; }
   if (picks.length < 2 && r.ranked[1]) picks.push(r.ranked[1]);
-  picks.forEach((s, i) => cards.push(transitCard(s, r, natal, day + i * 7, { first: i === 0, threads })));
+  picks.forEach((s, i) => cards.push(transitCard(s, r, natal, day + i * 7, { first: i === 0, threads, real })));
   cards.push(moonCard(r));
   // Only show "people near you" when there are enough real check-ins to count.
   if (r.crowd && r.crowd.count >= MIN_CROWD) cards.push(togetherCard(r, kp));
@@ -153,9 +157,9 @@ export function buildDeck(r, natal, kp, { weather = null, care = false, history 
   const ahead = whatsNext(natal, r.now);
   cards.push({ type: "ahead", kicker: "What's next", title: aheadTitle(ahead, r.now), items: ahead,
     focus: ahead.length ? { sky: [...new Set(ahead.flatMap(e => (e.title.match(/\b(Sun|Moon|Mercury|Venus|Mars|Jupiter|Saturn|Uranus|Neptune|Pluto)\b/g) || [])))].slice(0, 2), zoom: 0.5 } : { wide: true } });
-  cards.push({ type: "reflect", kicker: "A question to sit with", title: questionFor(r.bucket, r.themes || [], day + Math.round(r.feel * 10)),
+  cards.push({ type: "reflect", kicker: "A question to sit with", title: real ? pickBy(REAL_QUESTIONS[r.bucket], day + Math.round(r.feel * 10)) : questionFor(r.bucket, r.themes || [], day + Math.round(r.feel * 10)),
     lead: "No need to answer here. Let it keep you company tonight.", focus: { wide: true, natalGlow: true } });
-  const line = closingLine(r);
+  const line = closingLine(r, real);
   const links = [
     ...r.ranked.slice(0, 3).map(s => [["sky", s.t], ["natal", s.n]]),
     ...r.sig.collective.slice(0, 2).map(s => [["sky", s.t], ["sky", s.n]]),

@@ -5,6 +5,7 @@ import {
   natalChart, todaySignals, homeForecast, positions, writeReading, conditionOf, CONDITIONS, signOf, nakshatraOf, dayKey, moonPhase, findThemes,
 } from "./astro.js";
 import { Sky } from "./sky3d.js";
+import { REAL_HOME_HEADLINES } from "./voice-real.js";
 
 const A = window.Astronomy;
 const $ = s => document.querySelector(s);
@@ -25,6 +26,14 @@ let entries = store.get("entries", []);
 let prefs = store.get("prefs", { phase: "auto", useHere: false, here: null, installAskedAt: 0 });
 let natal = null, kp = null, weather = null, phaseOverride = null;
 if (prefs.phase && prefs.phase !== "auto") { prefs.phase = "auto"; store.set("prefs", prefs); }
+// How the sky talks to you: "soft" (the original voice) or "real" (real talk: blunter, funnier, still kind).
+const tone = () => (prefs.tone === "real" ? "real" : "soft");
+function setTone(t) {
+  prefs.tone = t; store.set("prefs", prefs);
+  document.body.classList.toggle("tone-real", t === "real");
+  document.querySelectorAll(".tone-switch [data-tone]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.tone === t)));
+}
+document.body.classList.toggle("tone-real", tone() === "real");
 
 function toast(msg, ms = 3200) {
   const t = $("#toast"); t.textContent = msg; t.hidden = false;
@@ -33,6 +42,7 @@ function toast(msg, ms = 3200) {
 
 // ---------- Sky ----------
 const sky = new Sky($("#sky"));
+sky.useSticker();
 sky.setSky(positions(new Date()));
 // The sphere is drawn inside .sphere-wrap's box; keep it in sync with the layout.
 function updateSlot(instant = false) {
@@ -71,8 +81,8 @@ function computePhase() {
 function applyPhase() {
   const p = computePhase();
   document.body.dataset.phase = p;
-  sky.setLight(p === "day" || p === "dawn");
-  const theme = { night: "#120a24", dusk: "#33245e", dawn: "#f6eefb", day: "#f7f2fb" }[p];
+  sky.setLight(p === "day" || p === "dawn", p === "night");
+  const theme = { night: "#1D1A3C", dusk: "#FFEDB8", dawn: "#FFE3EF", day: "#E9E2FF" }[p];
   document.querySelector('meta[name="theme-color"]').setAttribute("content", theme);
 }
 applyPhase();
@@ -150,7 +160,7 @@ function renderHome() {
   const f = homeForecast(sig);
   const daySeed = Math.floor((now.getTime() - now.getTimezoneOffset() * 6e4) / 864e5);
   $("#dateline").textContent = now.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
-  $("#forecastText").textContent = pickBy(HOME_HEADLINES[f.cond], daySeed);
+  $("#forecastText").textContent = pickBy((tone() === "real" ? REAL_HOME_HEADLINES : HOME_HEADLINES)[f.cond], daySeed);
   $("#forecastSupport").textContent = pickBy(HOME_SUPPORT[f.cond], daySeed + 1);
   // The astrology behind it, in small print.
   const top = sig.personal[0];
@@ -411,7 +421,8 @@ function startReading(r, entry, { consult = true, care = false, history = [] } =
   $("#cards").hidden = true; $("#cards").innerHTML = ""; $("#bars").innerHTML = "";
   sky.setSky(r.sig.sky);
   requestAnimationFrame(() => updateSlot());
-  reading = { r, entry, deck: buildDeck(r, natal, kp, { weather, care, history, feelWord: moodWord(r.feel), name: profile.name || "" }), index: -1 };
+  const deckOpts = { weather, care, history, feelWord: moodWord(r.feel), name: profile.name || "" };
+  reading = { r, entry, deckOpts, deck: buildDeck(r, natal, kp, { ...deckOpts, tone: tone() }), index: -1 };
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (!consult || reduced) { $("#consult").hidden = true; showDeck(); return; }
 
@@ -464,6 +475,28 @@ function techBlock(tech) {
   return `<details class="tech"><summary class="tech-name">${glyphs}<span>${esc(tech.name)}</span><span class="tech-more" aria-hidden="true">+</span></summary><p class="tech-text">${esc(tech.text)}</p></details>`;
 }
 
+// "Is this you?" on each personal card. The answer tunes which planets æther listens to for you.
+const RES_WEIGHT = { yes: 1, little: 0.4, no: -0.6 };
+function resCard(c) {
+  const done = (reading.entry.cardRes || {})[c.planet];
+  if (done) return `<div class="res-card"><span class="res-done">${done === "no" ? "noted. æther will listen closer." : "noted. that helps æther know you."}</span></div>`;
+  return `<div class="res-card" data-planet="${esc(c.planet)}"><span>is this you?</span><button type="button" data-res="yes">so me</button><button type="button" data-res="little">kinda</button><button type="button" data-res="no">nope</button></div>`;
+}
+function bindCardRes(root) {
+  root.querySelectorAll(".res-card[data-planet] [data-res]").forEach(b => (b.onclick = () => {
+    const box = b.closest(".res-card"), planet = box.dataset.planet, v = b.dataset.res;
+    const en = reading.entry;
+    en.cardRes = { ...(en.cardRes || {}), [planet]: v };
+    if (!en.resonance) en.resonance = v;   // counts as the "did it feel true?" answer for this reading
+    store.set("entries", entries);
+    prefs.resonance = prefs.resonance || {};
+    prefs.resonance[planet] = Math.max(-3, Math.min(3, (prefs.resonance[planet] || 0) + RES_WEIGHT[v]));
+    store.set("prefs", prefs);
+    box.innerHTML = `<span class="res-done">${v === "no" ? "noted. æther will listen closer." : "noted. that helps æther know you."}</span>`;
+    box.removeAttribute("data-planet");
+  }));
+}
+
 function renderCard(c, i, r) {
   let d = 0;
   const kicker = rv(`<p class="kicker">${esc(c.kicker)}</p>`, d++);
@@ -481,7 +514,8 @@ function renderCard(c, i, r) {
       + rv(`<p class="pill">${esc(c.pill)}</p>`, d++)
       + rv(`<p class="lead">${esc(c.lead)}</p>`, d++)
       + (c.thread ? rv(`<p class="thread">${esc(c.thread)}</p>`, d++) : "")
-      + rv(techBlock(c.tech), d++);
+      + rv(techBlock(c.tech), d++)
+      + rv(resCard(c), d++);
   } else if (c.type === "reflect") {
     inner = kicker
       + rv(`<h2 class="card-title big question">${esc(c.title)}</h2>`, d++)
@@ -546,6 +580,7 @@ function showDeck() {
     if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.3) { e.preventDefault(); goCard(dx < 0 ? 1 : -1); }
   };
   cards.querySelectorAll("[data-act]").forEach(b => (b.onclick = () => cardAction(b)));
+  bindCardRes(cards);
   cards.querySelectorAll("details.tech").forEach(d => d.addEventListener("toggle", () => fitCards()));
 }
 
@@ -630,6 +665,16 @@ function endReading() {
   maybeAskInstall();
 }
 $("#stageClose").onclick = endReading;
+document.querySelectorAll(".tone-switch [data-tone]").forEach(b => (b.onclick = e => {
+  e.stopPropagation();
+  if (b.dataset.tone === tone()) return;
+  setTone(b.dataset.tone);
+  renderHome();
+  if (!reading) return;
+  reading.deck = buildDeck(reading.r, natal, kp, { ...reading.deckOpts, tone: tone() });
+  if ($("#cards").innerHTML) { const at = reading.index; showDeck(); setActive(Math.min(at, reading.deck.length - 1)); }
+}));
+setTone(tone());
 
 // ---------- Breathing ritual: in 4 s, out 6 s, three rounds ----------
 function startRitual() {
@@ -659,89 +704,107 @@ function wrap(ctx, text, maxW) {
   for (const w of words) { const t = line ? line + " " + w : w; if (ctx.measureText(t).width > maxW && line) { lines.push(line); line = w; } else line = t; }
   if (line) lines.push(line); return lines;
 }
-// The share image: a story-sized digest of the whole reading, with the closing line at the bottom.
+// The share image: a story-sized sticker of the whole reading, with the closing line at the bottom.
 // It never includes the words the person wrote.
+function rrect(g, x, y, w, h, r) { g.beginPath(); g.roundRect(x, y, w, h, r); }
 async function renderShareImage(r, deck) {
-  try { await document.fonts.load('400 64px "Fraunces"'); await document.fonts.load('italic 400 40px "Fraunces"'); await document.fonts.load('500 30px "Figtree"'); await document.fonts.load('650 30px "Figtree"'); } catch { }
+  try { await Promise.all(['800 64px "Unbounded"', '700 30px "Unbounded"', '500 30px "DM Sans"', '700 30px "DM Sans"', '700 40px "Caveat"'].map(f => document.fonts.load(f))); } catch { }
   deck = deck || [];
+  const real = tone() === "real";
+  const low = t => (real ? t.toLowerCase() : t);
   const close = deck.find(c => c.type === "close");
   const line = close ? close.line : null;
   const items = deck.filter(c => c.type === "transit" || c.type === "moon");
   const W = 1080, H = 1920, c = document.createElement("canvas"); c.width = W; c.height = H;
   const g = c.getContext("2d");
-  const M = 84, TW = W - M * 2;
-  const grads = { heavy: ["#120a26", "#2e3970"], mixed: ["#120a26", "#463888"], golden: ["#271a4e", "#e2957f"] }[r.bucket];
-  const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, grads[0]); bg.addColorStop(1, grads[1]);
-  g.fillStyle = bg; g.fillRect(0, 0, W, H);
+  const INK = "#141218", PINK = "#FF6FAE", YEL = "#FFD84D", MINT = "#6EE7B7", COB = "#3D3BFF";
+  const ground = { heavy: "#CDD3FF", mixed: "#E9E2FF", golden: "#FF9CC8" }[r.bucket] || "#E9E2FF";
+  g.fillStyle = ground; g.fillRect(0, 0, W, H);
+  g.fillStyle = "rgba(20,18,24,.08)";
+  for (let y = 12; y < H; y += 44) for (let x = 12; x < W; x += 44) { g.beginPath(); g.arc(x, y, 3, 0, 7); g.fill(); }
 
-  // Small sphere at the top
-  const cx = W / 2, cy = 330;
-  const halo = g.createRadialGradient(cx, cy, 10, cx, cy, 380);
-  halo.addColorStop(0, "rgba(184,164,255,.32)"); halo.addColorStop(1, "rgba(184,164,255,0)");
-  g.fillStyle = halo; g.fillRect(0, 0, W, 760);
-  let s0 = Math.floor(Date.now() / 864e5) || 7; const rnd = () => (s0 = (s0 * 16807) % 2147483647) / 2147483647;
-  for (let i = 0; i < 160; i++) { g.fillStyle = `rgba(255,255,255,${rnd() * .5 + .1})`; g.beginPath(); g.arc(rnd() * W, rnd() * H, rnd() * 1.7 + .3, 0, 7); g.fill(); }
-  const ringGrad = () => { const rg = g.createLinearGradient(-260, 0, 260, 0); [["#B8A4FF", 0], ["#9EE6D4", .35], ["#FFB89A", .7], ["#F7C8E8", 1]].forEach(([col, st]) => rg.addColorStop(st, col)); return rg; };
-  const ell = (rx, ry, rot, w, al) => { g.save(); g.translate(cx, cy); g.rotate(rot); g.globalAlpha = al; g.strokeStyle = ringGrad(); g.lineWidth = w; g.beginPath(); g.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2); g.stroke(); g.restore(); };
-  ell(250, 84, -0.18, 4.5, 1); ell(250, 114, 0.32, 2.2, .55); ell(92, 250, 0.1, 2, .4); ell(168, 56, -0.18, 2.2, .6);
-  const pt = lon => { const a = lon * Math.PI / 180, x = Math.cos(a) * 250, y = Math.sin(a) * 84; return [cx + x * Math.cos(-0.18) - y * Math.sin(-0.18), cy + x * Math.sin(-0.18) + y * Math.cos(-0.18)]; };
-  for (const [p, v] of Object.entries(r.sig.sky)) {
-    const [px, py] = pt(v.lon), big = p === "Sun" || p === "Moon";
-    const pg = g.createRadialGradient(px, py, 0, px, py, big ? 26 : 16); pg.addColorStop(0, "rgba(255,255,255,1)"); pg.addColorStop(1, "rgba(255,255,255,0)");
-    g.fillStyle = pg; g.beginPath(); g.arc(px, py, big ? 26 : 16, 0, 7); g.fill();
-  }
-  const core = g.createRadialGradient(cx, cy, 0, cx, cy, 46); core.addColorStop(0, "#fff"); core.addColorStop(1, "rgba(255,255,255,0)");
-  g.fillStyle = core; g.beginPath(); g.arc(cx, cy, 46, 0, 7); g.fill();
-  g.textAlign = "center";
-  g.fillStyle = "rgba(247,242,251,.65)"; g.font = '500 28px "Figtree", sans-serif';
-  g.fillText(r.now.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" }), cx, 96);
+  // Date sticker
+  const date = r.now.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "short" }).toLowerCase();
+  g.save(); g.translate(84, 110); g.rotate(-0.06);
+  g.font = '700 34px "Unbounded", sans-serif'; const dw = g.measureText("my sky · " + date).width + 56;
+  rrect(g, 0, 0, dw, 70, 35); g.fillStyle = YEL; g.fill(); g.lineWidth = 6; g.strokeStyle = INK; g.stroke();
+  g.fillStyle = INK; g.textBaseline = "middle"; g.fillText("my sky · " + date, 28, 37); g.restore();
+  g.textBaseline = "alphabetic";
 
-  // Build the text blocks, then shrink everything together until it fits.
-  const blocks = [];
-  blocks.push({ kind: "head", text: (deck[0] && deck[0].title) || r.headline });
-  for (const it of items) blocks.push({ kind: "item", kicker: it.kicker, title: it.title, meta: [it.pill, it.tech && it.tech.name].filter(Boolean).join("  ·  ") });
+  // Sticker globe with today's real planets on the ring
+  const cx = W - 250, cy = 330, R = 150, rx = 220, ry = 62, rot = -0.22;
+  const ringPt = lon => { const a = lon * Math.PI / 180, x = Math.cos(a) * rx, y = Math.sin(a) * ry; return [cx + x * Math.cos(rot) - y * Math.sin(rot), cy + x * Math.sin(rot) + y * Math.cos(rot), Math.sin(a)]; };
+  const ring = (from, to) => { g.save(); g.translate(cx, cy); g.rotate(rot); g.lineCap = "round";
+    g.strokeStyle = INK; g.lineWidth = 34; g.beginPath(); g.ellipse(0, 0, rx, ry, 0, from, to); g.stroke();
+    g.strokeStyle = PINK; g.lineWidth = 20; g.beginPath(); g.ellipse(0, 0, rx, ry, 0, from, to); g.stroke(); g.restore(); };
+  const DOT = { Sun: YEL, Moon: "#fff", Mercury: MINT, Venus: PINK, Mars: "#FF7A45", Jupiter: "#FFB020", Saturn: "#C9B8FF", Uranus: "#7DE3FF", Neptune: "#8FA2FF", Pluto: "#B98CFF" };
+  const dots = Object.entries(r.sig.sky).map(([p, v]) => [p, ...ringPt(v.lon)]);
+  const drawDot = ([p, x, y]) => { const big = p === "Sun" || p === "Moon"; g.beginPath(); g.arc(x, y, big ? 21 : 15, 0, 7); g.fillStyle = DOT[p] || "#fff"; g.fill(); g.lineWidth = 5; g.strokeStyle = INK; g.stroke(); };
+  ring(Math.PI, Math.PI * 2);
+  dots.filter(d => d[3] < 0).forEach(drawDot);
+  g.beginPath(); g.arc(cx, cy, R, 0, 7); g.fillStyle = COB; g.fill(); g.lineWidth = 8; g.strokeStyle = INK; g.stroke();
+  g.strokeStyle = "rgba(255,255,255,.55)"; g.lineWidth = 16; g.lineCap = "round"; g.beginPath(); g.arc(cx, cy, R - 34, Math.PI * 1.08, Math.PI * 1.42); g.stroke();
+  ring(0, Math.PI);
+  dots.filter(d => d[3] >= 0).forEach(drawDot);
+  // A little sparkle sticker
+  const spark = (x, y, s, col) => { g.save(); g.translate(x, y); g.beginPath(); g.moveTo(0, -s); g.bezierCurveTo(s * .1, -s * .3, s * .3, -s * .1, s, 0); g.bezierCurveTo(s * .3, s * .1, s * .1, s * .3, 0, s); g.bezierCurveTo(-s * .1, s * .3, -s * .3, s * .1, -s, 0); g.bezierCurveTo(-s * .3, -s * .1, -s * .1, -s * .3, 0, -s); g.fillStyle = col; g.fill(); g.lineWidth = 5; g.strokeStyle = INK; g.lineJoin = "round"; g.stroke(); g.restore(); };
+  spark(150, 330, 46, YEL); spark(250, 470, 26, PINK);
+
+  // The card
+  const blocks = [{ kind: "head", text: low((deck[0] && deck[0].title) || r.headline) }];
+  for (const it of items) blocks.push({ kind: "item", kicker: it.kicker, title: low(it.title), meta: it.tech ? it.tech.name : "" });
   const ahead = deck.find(c => c.type === "ahead");
-  if (ahead && ahead.items.length) blocks.push({ kind: "item", kicker: "What's next", title: ahead.title, meta: ahead.items.map(e => `${e.day.split(",")[0]}: ${e.title}`).join("  ·  ") });
+  if (ahead && ahead.items.length) blocks.push({ kind: "item", kicker: "What's next", title: low(ahead.title), meta: ahead.items.slice(0, 2).map(e => `${e.day.split(",")[0]}: ${e.title}`).join("  ·  ") });
   if (line) blocks.push({ kind: "quote", text: line.text, author: line.author });
-  const top = 640, bottom = H - 190;
+  const CX = 70, CW = W - 140, PAD = 56, TW = CW - PAD * 2, top = 610, maxH = H - 230 - top;
   const layout = k => {
-    const f = { head: 62 * k, kick: 25 * k, title: 40 * k, meta: 24 * k, quote: 46 * k, author: 26 * k };
-    let h = 0; const out = [];
+    const f = { head: 70 * k, kick: 26 * k, title: 42 * k, meta: 28 * k, quote: 60 * k, author: 28 * k };
+    let h = PAD; const out = [];
     for (const b of blocks) {
-      if (b.kind === "head") { g.font = `400 ${f.head}px "Fraunces", serif`; const ls = wrap(g, b.text, TW); out.push({ b, ls, f }); h += ls.length * f.head * 1.16 + 40 * k; }
-      else if (b.kind === "item") { g.font = `400 ${f.title}px "Fraunces", serif`; const ls = wrap(g, b.title, TW); g.font = `500 ${f.meta}px "Figtree", sans-serif`; const ms = wrap(g, b.meta, TW); out.push({ b, ls, ms, f }); h += f.kick * 1.5 + ls.length * f.title * 1.2 + ms.length * f.meta * 1.4 + 36 * k; }
-      else { g.font = `italic 400 ${f.quote}px "Fraunces", serif`; const ls = wrap(g, `“${b.text}”`, TW); out.push({ b, ls, f }); h += 30 * k + ls.length * f.quote * 1.26 + (b.author ? f.author * 1.8 : 0); }
+      if (b.kind === "head") { g.font = `800 ${f.head}px "Unbounded", sans-serif`; const ls = wrap(g, b.text, TW); out.push({ b, ls, f }); h += ls.length * f.head * 1.12 + 34 * k; }
+      else if (b.kind === "item") { g.font = `700 ${f.title}px "Unbounded", sans-serif`; const ls = wrap(g, b.title, TW); g.font = `500 ${f.meta}px "DM Sans", sans-serif`; const ms = wrap(g, b.meta, TW); out.push({ b, ls, ms, f }); h += f.kick * 2.2 + ls.length * f.title * 1.18 + ms.length * f.meta * 1.4 + 30 * k; }
+      else { g.font = `700 ${f.quote}px "Caveat", cursive`; const ls = wrap(g, b.text, TW); out.push({ b, ls, f }); h += 24 * k + ls.length * f.quote * 1.05 + (b.author ? f.author * 1.8 : 0); }
     }
-    return { out, h };
+    return { out, h: h + PAD - 20 * k };
   };
   let k = 1, L = layout(k);
-  while (L.h > bottom - top && k > 0.6) { k -= 0.04; L = layout(k); }
-  let y = top + Math.max(0, (bottom - top - L.h) / 2);
-  g.textAlign = "left";
+  while (L.h > maxH && k > 0.6) { k -= 0.03; L = layout(k); }
+  const CH = L.h;
+  g.save(); g.translate(CX + CW / 2, top + CH / 2); g.rotate(-0.012); g.translate(-(CX + CW / 2), -(top + CH / 2));
+  rrect(g, CX + 20, top + 20, CW, CH, 56); g.fillStyle = INK; g.fill();
+  rrect(g, CX, top, CW, CH, 56); g.fillStyle = "#fff"; g.fill(); g.lineWidth = 8; g.strokeStyle = INK; g.stroke();
+  let y = top + PAD; const X = CX + PAD;
   for (const { b, ls, ms, f } of L.out) {
     if (b.kind === "head") {
-      g.fillStyle = "#F7F2FB"; g.font = `400 ${f.head}px "Fraunces", serif`;
-      ls.forEach(l => { y += f.head; g.fillText(l, M, y); y += f.head * 0.16; });
-      y += 40 * k;
+      g.fillStyle = INK; g.font = `800 ${f.head}px "Unbounded", sans-serif`;
+      ls.forEach(l => { y += f.head; g.fillText(l, X, y); y += f.head * 0.12; });
+      y += 34 * k;
     } else if (b.kind === "item") {
-      g.fillStyle = "rgba(247,242,251,.55)"; g.font = `600 ${f.kick}px "Figtree", sans-serif`;
-      y += f.kick; g.fillText(b.kicker, M, y); y += f.kick * 0.5;
-      g.fillStyle = "#F7F2FB"; g.font = `400 ${f.title}px "Fraunces", serif`;
-      ls.forEach(l => { y += f.title; g.fillText(l, M, y); y += f.title * 0.2; });
-      g.fillStyle = "rgba(247,242,251,.62)"; g.font = `500 ${f.meta}px "Figtree", sans-serif`;
-      ms.forEach(l => { y += f.meta * 1.15; g.fillText(l, M, y); y += f.meta * 0.25; });
-      y += 36 * k;
-    } else {
-      g.strokeStyle = "rgba(247,242,251,.25)"; g.lineWidth = 2; g.beginPath(); g.moveTo(M, y + 4); g.lineTo(M + 120, y + 4); g.stroke();
+      g.font = `700 ${f.kick}px "Unbounded", sans-serif`;
+      const kw = g.measureText(b.kicker.toLowerCase()).width + 28, kh = f.kick * 1.7;
+      rrect(g, X, y, kw, kh, 14); g.fillStyle = b.kicker === "What's next" ? YEL : MINT; g.fill(); g.lineWidth = 4; g.strokeStyle = INK; g.stroke();
+      g.fillStyle = INK; g.textBaseline = "middle"; g.fillText(b.kicker.toLowerCase(), X + 14, y + kh / 2 + 1); g.textBaseline = "alphabetic";
+      y += f.kick * 2.2;
+      g.font = `700 ${f.title}px "Unbounded", sans-serif`;
+      ls.forEach(l => { y += f.title; g.fillText(l, X, y); y += f.title * 0.18; });
+      g.fillStyle = "#4A4553"; g.font = `500 ${f.meta}px "DM Sans", sans-serif`;
+      ms.forEach(l => { y += f.meta * 1.15; g.fillText(l, X, y); y += f.meta * 0.25; });
       y += 30 * k;
-      g.fillStyle = "#F7F2FB"; g.font = `italic 400 ${f.quote}px "Fraunces", serif`;
-      ls.forEach(l => { y += f.quote; g.fillText(l, M, y); y += f.quote * 0.26; });
-      if (b.author) { g.fillStyle = "rgba(247,242,251,.65)"; g.font = `500 ${f.author}px "Figtree", sans-serif`; y += f.author * 1.5; g.fillText(`— ${b.author}`, M, y); }
+    } else {
+      y += 24 * k;
+      g.fillStyle = COB; g.font = `700 ${f.quote}px "Caveat", cursive`;
+      ls.forEach(l => { y += f.quote * 0.95; g.fillText(l, X, y); y += f.quote * 0.1; });
+      if (b.author) { g.fillStyle = "#4A4553"; g.font = `700 ${f.author}px "DM Sans", sans-serif`; y += f.author * 1.5; g.fillText(`— ${b.author}`, X, y); }
     }
   }
-  g.textAlign = "center";
-  g.fillStyle = "#F7F2FB"; g.font = 'italic 400 50px "Fraunces", Georgia, serif'; g.fillText("æther", cx, H - 110);
-  g.fillStyle = "rgba(247,242,251,.6)"; g.font = '400 26px "Figtree", sans-serif'; g.fillText(`${SITE.replace("https://", "")}  ·  ${IG_HANDLE}`, cx, H - 66);
+  g.restore();
+
+  // Footer bar
+  rrect(g, 70, H - 190, W - 140, 130, 40); g.fillStyle = INK; g.fill();
+  g.fillStyle = "#fff"; g.font = '800 50px "Unbounded", sans-serif'; g.fillText("æther", 116, H - 112);
+  g.fillStyle = "#E9E2FF"; g.font = '600 28px "DM Sans", sans-serif'; g.textAlign = "right";
+  g.fillText("get yours free · " + SITE.replace("https://", ""), W - 116, H - 132);
+  g.fillText(IG_HANDLE, W - 116, H - 92); g.textAlign = "left";
   return new Promise(res => c.toBlob(res, "image/png"));
 }
 async function shareCard(r, deck) {
@@ -885,6 +948,9 @@ function openMenu() {
   openSheet(`
     <h2 id="sheetTitle">æther</h2>
     <div class="menu-list">
+      <div class="menu-item" style="display:block;cursor:default">How should the sky talk to you?<small>Soft is gentle. Real talk is blunter and funnier, and still kind.</small>
+        <div class="chips" id="mTone" style="margin-top:10px"><button type="button" class="chip" data-v="soft" aria-pressed="${tone() === "soft"}">soft</button><button type="button" class="chip" data-v="real" aria-pressed="${tone() === "real"}">real talk</button></div>
+      </div>
       <button class="menu-item" id="mShare">${ic.share}<span>Share æther<small>Send the app to a friend</small></span></button>
       ${isStandalone() ? "" : `<button class="menu-item" id="mInstall">${ic.home}<span>Add to home screen<small>Open it full-screen, like an app</small></span></button>`}
       <button class="menu-item" id="mHere">${ic.pin}<span>${prefs.useHere ? "Colour the sky for where I am" : "Use where I am for colours and weather"}<small>${prefs.useHere ? "On. Tap to follow your time zone instead" : "Off. Colours follow your time zone; weather uses a rough guess of your city"}</small></span></button>
@@ -902,6 +968,11 @@ function openMenu() {
     <p class="credits">Planet positions are calculated on your phone with Astronomy Engine (open source). Space weather comes from NOAA's Space Weather Prediction Center. Local weather is from MET Norway (CC BY 4.0). Birthplaces come from GeoNames (CC BY 4.0). Lines from the traditions are paraphrased in our own words. æther is for reflection, not prediction.</p>
   `);
   $("#mShare").onclick = shareApp;
+  $("#mTone").onclick = e => {
+    const b = e.target.closest(".chip"); if (!b) return;
+    setTone(b.dataset.v); renderHome();
+    $("#mTone").querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  };
   const inst = $("#mInstall"); if (inst) inst.onclick = openInstall;
   $("#mTip").onclick = openTip;
   $("#mPhase").onclick = e => {
@@ -946,7 +1017,7 @@ countOnce("open");
 // Visits that arrive from Instagram (the bio link adds ?src=ig), counted once a day like everything else.
 try { if (/[?&]src=ig\b/.test(location.search) || /instagram/i.test(document.referrer)) countOnce("instagram"); } catch { }
 // Opened from the old address (or an older home-screen icon): point people to the new home.
-if (/netlify\.app$/.test(location.hostname)) setTimeout(() => {
+if (location.hostname === "aetherize.netlify.app") setTimeout(() => {
   const t = $("#toast");
   toast("æther has a new home at myaether.info. Tap here to go there, then add it to your home screen again.", 12000);
   t.style.pointerEvents = "auto"; t.style.cursor = "pointer";

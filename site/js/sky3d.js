@@ -16,7 +16,8 @@ const ringVert = `
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }`;
 const ringFrag = `
-  uniform float uTime, uOffset, uLight, uAlpha, uShift, uAlongUv;
+  uniform float uTime, uOffset, uLight, uAlpha, uShift, uAlongUv, uFlat;
+  uniform vec3 uColor;
   varying float vAngle;
   varying vec2 vUv;
   vec3 brand(float t) {
@@ -32,6 +33,7 @@ const ringFrag = `
     float t = a + uOffset + uTime * 0.025 + uShift;
     vec3 c = brand(t);
     c = mix(c, c * vec3(0.42, 0.36, 0.62), uLight);
+    c = mix(c, uColor, uFlat);
     gl_FragColor = vec4(c, uAlpha);
   }`;
 
@@ -63,6 +65,20 @@ function glyphTexture(glyph, color) {
   g.fillText(glyph, S / 2, S / 2 + 10);
   return finishTexture(c);
 }
+
+// Sticker style: a flat dot with an ink rim, tinted per planet.
+function dotTexture() {
+  const S = 256, c = document.createElement("canvas"); c.width = c.height = S;
+  const g = c.getContext("2d");
+  g.beginPath(); g.arc(S / 2, S / 2, S * 0.4, 0, Math.PI * 2);
+  g.fillStyle = "#ffffff"; g.fill();
+  g.lineWidth = S * 0.075; g.strokeStyle = "#141218"; g.stroke();
+  return finishTexture(c);
+}
+const STICKER_DOTS = {
+  Sun: 0xffd84d, Moon: 0xffffff, Mercury: 0x6ee7b7, Venus: 0xff6fae, Mars: 0xff7a45,
+  Jupiter: 0xffb020, Saturn: 0xc9b8ff, Uranus: 0x7de3ff, Neptune: 0x8fa2ff, Pluto: 0xb98cff, Ascendant: 0xffffff,
+};
 
 const PLANET_COLORS = {
   Sun: 0xffd9a8, Moon: 0xf7f2fb, Mercury: 0xcfe9ff, Venus: 0xffc2d6, Mars: 0xff9b85,
@@ -113,8 +129,8 @@ export class Sky {
   material(offset, alpha, alongUv = 0) {
     return new THREE.ShaderMaterial({
       vertexShader: ringVert, fragmentShader: ringFrag, transparent: true, depthWrite: false,
-      blending: this.light ? THREE.NormalBlending : THREE.AdditiveBlending,
-      uniforms: { uTime: { value: 0 }, uOffset: { value: offset }, uLight: { value: this.light }, uAlpha: { value: alpha }, uShift: { value: 0 }, uAlongUv: { value: alongUv } },
+      blending: this.light || this.sticker ? THREE.NormalBlending : THREE.AdditiveBlending,
+      uniforms: { uTime: { value: 0 }, uOffset: { value: offset }, uLight: { value: this.light }, uAlpha: { value: alpha }, uShift: { value: 0 }, uAlongUv: { value: alongUv }, uFlat: { value: this.sticker ? 1 : 0 }, uColor: { value: new THREE.Color(this.sticker ? this.edgeHex() : 0xffffff) } },
     });
   }
 
@@ -246,7 +262,71 @@ export class Sky {
     this.natalRing.userData.alphaGoal = 0.7;
   }
 
-  setLight(isLight) {
+  edgeHex() { return this.night ? 0xffffff : 0x141218; }
+
+  // The sticker look: a flat cobalt globe with an outline, a thick pink ecliptic, and planets as outlined dots.
+  useSticker() {
+    if (this.sticker) return;
+    this.sticker = true;
+    const edge = () => this.edgeHex();
+    for (const m of [...this.ringMats, this.arcMat]) { m.uniforms.uFlat.value = 1; m.blending = THREE.NormalBlending; m.needsUpdate = true; }
+    // Ecliptic: thick pink band with an ink outline drawn just behind it.
+    this.mainRing.geometry.dispose();
+    this.mainRing.geometry = new THREE.TorusGeometry(RING_R, 0.05, 16, 720);
+    this.mainRing.material.uniforms.uColor.value.setHex(0xff6fae);
+    this.mainRing.renderOrder = 3;
+    this.ringOutlineMat = this.material(0, 1); this.ringOutlineMat.uniforms.uFlat.value = 1;
+    this.ringOutline = new THREE.Mesh(new THREE.TorusGeometry(RING_R, 0.078, 16, 720), this.ringOutlineMat);
+    this.ringOutline.renderOrder = 2;
+    this.ecliptic.add(this.ringOutline);
+    // Thin rings become crisp ink lines.
+    const thin = [[this.outerRings[0], 0.012], [this.outerRings[1], 0.01], [this.outerRings[2], 0.01]];
+    for (const [r, tube] of thin) { r.geometry.dispose(); r.geometry = new THREE.TorusGeometry(r === this.outerRings[0] ? RING_R : RING_R * 1.06, tube, 10, 540); }
+    this.natalRing.geometry.dispose(); this.natalRing.geometry = new THREE.TorusGeometry(NATAL_R, 0.022, 12, 540);
+    this.natalRing.material.uniforms.uColor.value.setHex(0xffd84d);
+    this.arcMat.uniforms.uColor.value.setHex(0xffd84d);
+    // The globe itself, with an outline drawn from its back faces.
+    this.globe = new THREE.Group();
+    this.globeOutlineMat = new THREE.MeshBasicMaterial({ color: edge(), side: THREE.BackSide });
+    this.globe.add(new THREE.Mesh(new THREE.SphereGeometry(0.98, 64, 48), this.globeOutlineMat));
+    this.globe.add(new THREE.Mesh(new THREE.SphereGeometry(0.92, 64, 48), new THREE.MeshBasicMaterial({ color: 0x3d3bff })));
+    // A white shine on the upper left, like a printed highlight.
+    const sc = document.createElement("canvas"); sc.width = sc.height = 256;
+    const sg = sc.getContext("2d"); sg.strokeStyle = "rgba(255,255,255,.6)"; sg.lineWidth = 22; sg.lineCap = "round";
+    sg.beginPath(); sg.arc(128, 128, 92, Math.PI * 1.08, Math.PI * 1.42); sg.stroke();
+    this.shine = new THREE.Sprite(new THREE.SpriteMaterial({ map: finishTexture(sc), transparent: true, depthTest: false }));
+    this.shine.scale.setScalar(1.84); this.shine.renderOrder = 4;
+    this.globe.add(this.shine);
+    this.scene.add(this.globe);
+    this.core.visible = false;
+    // Planets: outlined dots with the glyph printed on top.
+    const dot = dotTexture();
+    for (const [p, g] of [...Object.entries(this.planets), ...Object.entries(this.natal)]) {
+      const { glow, label, natal } = g.userData;
+      glow.material.map = dot; glow.material.color.setHex(STICKER_DOTS[p] || 0xffffff);
+      glow.material.blending = THREE.NormalBlending; glow.material.needsUpdate = true;
+      glow.userData.baseScale *= natal ? 0.62 : 0.5; glow.scale.setScalar(glow.userData.baseScale);
+      glow.renderOrder = 6; label.renderOrder = 7;
+      label.material.depthTest = false; glow.material.depthTest = true;
+      label.userData.baseScale *= 0.82;
+    }
+    this.starMat.opacity = 0;
+    this.applyStickerEdge();
+  }
+  applyStickerEdge() {
+    const e = this.edgeHex();
+    this.ringOutlineMat.uniforms.uColor.value.setHex(e);
+    for (const r of this.outerRings) r.material.uniforms.uColor.value.setHex(e);
+    this.globeOutlineMat.color.setHex(e);
+    this.tickMat.color.setHex(e); this.tickMat.opacity = 0.7;
+    for (const s of this.signSprites) s.material.color.setHex(e);
+    for (const g of Object.values(this.natal)) g.userData.label.material.color.setHex(0x141218);
+    for (const g of Object.values(this.planets)) g.userData.label.material.color.setHex(0x141218);
+    for (const l of this.links) l.mesh.material.uniforms.uColor.value.setHex(e);
+  }
+
+  setLight(isLight, night = false) {
+    if (this.sticker) { this.night = night; this.applyStickerEdge(); return; }
     this.light = isLight ? 1 : 0;
     const blend = isLight ? THREE.NormalBlending : THREE.AdditiveBlending;
     const mats = [...this.ringMats, this.arcMat, ...this.links.map(l => l.mesh.material)];
@@ -278,7 +358,7 @@ export class Sky {
     const lift = Math.max(0.35, a.distanceTo(b) * 0.35);
     mid.z += lift;
     const curve = new THREE.QuadraticBezierCurve3(a, mid, b);
-    const geo = new THREE.TubeGeometry(curve, 120, 0.016, 10, false);
+    const geo = new THREE.TubeGeometry(curve, 120, this.sticker ? 0.024 : 0.016, 10, false);
     const mat = this.material(Math.random(), 0.95, 1);
     const mesh = new THREE.Mesh(geo, mat);
     geo.setDrawRange(0, 0);
@@ -577,6 +657,7 @@ export class Sky {
 
     const breath = this.reduced ? 1 : 1 + Math.sin(this.time * 1.4) * 0.06;
     this.core.scale.setScalar((0.55 + this.pulse * 0.9 + (this.consulting ? 0.25 : 0)) * breath);
+    if (this.globe) { this.globe.scale.setScalar(1 + this.pulse * 0.12 + (this.reduced ? 0 : Math.sin(this.time * 1.4) * 0.015)); }
     // In reading mode the sphere is clipped to its slot so it never runs behind the cards.
     if (this.clip && this.slotCur) {
       const r = this.slotCur;

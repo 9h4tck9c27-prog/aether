@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>æther</title>
   <meta name="description" content="Your daily astrological weather. It's not just you.">
-  <meta name="theme-color" content="#1C1230">
+  <meta name="theme-color" content="#E9E2FF">
 
   <!-- Home screen app -->
   <link rel="manifest" href="/manifest.webmanifest">
@@ -34,9 +34,10 @@
   <meta name="twitter:description" content="A free, beautiful reading of today's sky, written for how you actually feel. It's not just you.">
   <meta name="twitter:image" content="https://myaether.info/og-image.jpg">
 
-  <link rel="preload" href="/fonts/fraunces-latin-full-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="/fonts/figtree-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/unbounded-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/dm-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/sticker.css">
   <script src="/vendor/astronomy.browser.min.js" defer></script>
 </head>
 <body data-phase="night" class="introing intro-wait">
@@ -151,6 +152,7 @@
   <section class="stage" id="stage" hidden aria-label="Your reading">
     <div class="stage-top">
       <div class="bars" id="bars" aria-hidden="true"></div>
+      <div class="tone-switch" role="group" aria-label="How the sky talks to you"><button type="button" data-tone="soft">soft</button><button type="button" data-tone="real">real talk</button></div>
       <button class="icon-btn stage-close" id="stageClose" aria-label="Close the reading">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
@@ -168,7 +170,7 @@
   <section class="ritual" id="ritual" hidden aria-live="polite">
     <div class="breath-orb" id="breathOrb"></div>
     <p class="breath-word" id="breathWord">Breathe in</p>
-    <p class="breath-sub">Paced to the slow turn of the sky. Thirty seconds.</p>
+    <p class="breath-sub">In for four, out for six. Thirty seconds.</p>
     <button class="ghost" id="ritualDone">I'm done</button>
   </section>
 
