@@ -2,6 +2,7 @@
 // Big text is plain and human; astrology terms sit in the small print with a definition.
 import { lonOf, sep, ayanamsa, signOf } from "./astro.js";
 import { PLANET_GLYPHS, NAKSHATRA_LORE } from "./data.js";
+import { whatsNext, aheadTitle } from "./ahead.js";
 import { threadLine, PLANET_ROLE, ROLE_VERB, NATAL_PLAIN, CONCRETE, timingLine, arcPill, memoryLine, echoTitle, questionFor, PHASE_MEANING, moonNext } from "./story.js";
 import {
   pickBy, TRANSIT_HEADLINES, TRANSIT_PLAIN, FEEL_BRIDGE, PLAIN_PLANET, PLAIN_NATAL, ASPECT_DEFS, ASPECT_WORD,
@@ -148,6 +149,10 @@ export function buildDeck(r, natal, kp, { weather = null, care = false, history 
   if (r.crowd && r.crowd.count >= MIN_CROWD) cards.push(togetherCard(r, kp));
   // A few heavy days in a row: a gentle, skippable note with a way to reach a real person.
   if (care) cards.push({ type: "care", ...CARE, help: careLine(), focus: { wide: true } });
+  // What's next: the coming week's real sky, so the reading looks forward as well as back.
+  const ahead = whatsNext(natal, r.now);
+  cards.push({ type: "ahead", kicker: "What's next", title: aheadTitle(ahead, r.now), items: ahead,
+    focus: ahead.length ? { sky: [...new Set(ahead.flatMap(e => (e.title.match(/\b(Sun|Moon|Mercury|Venus|Mars|Jupiter|Saturn|Uranus|Neptune|Pluto)\b/g) || [])))].slice(0, 2), zoom: 0.5 } : { wide: true } });
   cards.push({ type: "reflect", kicker: "A question to sit with", title: questionFor(r.bucket, r.themes || [], day + Math.round(r.feel * 10)),
     lead: "No need to answer here. Let it keep you company tonight.", focus: { wide: true, natalGlow: true } });
   const line = closingLine(r);

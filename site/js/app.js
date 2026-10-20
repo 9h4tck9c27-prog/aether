@@ -486,7 +486,11 @@ function renderCard(c, i, r) {
     inner = kicker
       + rv(`<h2 class="card-title big question">${esc(c.title)}</h2>`, d++)
       + rv(`<p class="lead soft">${esc(c.lead)}</p>`, d++)
-      + rv(`<div class="card-actions"><button class="ghost release-btn" data-act="release"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V7M7 11l5-5 5 5"/><circle cx="12" cy="4" r=".6"/></svg>Let something go</button></div>`, d++);
+      ;
+  } else if (c.type === "ahead") {
+    inner = kicker
+      + rv(`<h2 class="card-title">${esc(c.title)}</h2>`, d++)
+      + rv(`<ol class="ahead-list">${c.items.map(it => `<li class="${it.personal ? "personal" : ""}"><span class="ahead-day">${esc(it.day)}${it.personal ? " · for you" : ""}</span><b>${esc(it.title)}</b><span class="ahead-text">${esc(it.text)}</span></li>`).join("")}</ol>`, d++);
   } else if (c.type === "moon") {
     inner = kicker
       + rv(`<div class="moon-row">${moonSvg(c.phase)}<h2 class="card-title">${esc(c.title)}</h2></div>`, d++)
@@ -513,7 +517,7 @@ function renderCard(c, i, r) {
       + rv(`<div class="card-actions">
           <button class="primary share-btn" data-act="share"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4"/><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></svg>Share</button>
           <div class="row">${isStandalone() ? "" : `<button class="ghost" data-act="install">Add æther to home screen</button>`}<button class="ghost" data-act="save"${saved ? " disabled" : ""}>${saved ? "Saved to journal" : "Save to journal"}</button></div>
-          ${c.bucket === "heavy" ? `<button class="text-btn" data-act="breathe">Take a slow breath with the sky</button>` : ""}
+          ${c.bucket !== "golden" ? `<button class="breathe-btn" data-act="breathe"><span class="breathe-dot" aria-hidden="true"></span>${c.bucket === "heavy" ? "Take a slow breath with the sky" : "Take a quiet minute to settle"}</button>` : ""}
         </div>`, d++)
       + (c.bucket === "golden" ? rv(`<div class="card-tip"><button class="tip-btn" type="button"><span class="tip-heart" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20.5s-7.5-4.6-7.5-10.3A4.3 4.3 0 0 1 12 7.4a4.3 4.3 0 0 1 7.5 2.8c0 5.7-7.5 10.3-7.5 10.3z"/></svg></span><span class="tip-text"><b>Chip in to keep æther free</b><small>No ads, no paywall. Tips keep the sky turning.</small></span><span class="tip-arrow" aria-hidden="true">›</span></button></div>`, d++) : "");
   }
@@ -579,6 +583,7 @@ function setActive(i) {
   if (h) { h.tabIndex = -1; setTimeout(() => h.focus({ preventScroll: true }), 50); }
   document.querySelectorAll("#bars span").forEach((b, j) => (b.className = j < i ? "done" : j === i ? "on" : ""));
   $("#nextHint").hidden = i === 0 || i === reading.deck.length - 1;
+  $("#stage").dataset.card = reading.deck[i].type;
   placeScrim(els[i]);
   sky.focus(reading.deck[i].focus);
   const num = els[i].querySelector("[data-count]");
@@ -601,7 +606,6 @@ function cardAction(b) {
   if (act === "next") return goCard(1);
   if (act === "share") return shareCard(reading.r, reading.deck);
   if (act === "breathe") return startRitual();
-  if (act === "release") return startRelease();
   if (act === "done") return endReading();
   if (act === "install") return openInstall();
   if (act === "save") {
@@ -649,37 +653,6 @@ function startRitual() {
   $("#ritualDone").onclick = () => { stopped = true; el.hidden = true; if (!reading) maybeAskInstall(); };
 }
 
-// ---------- Letting go: type it, watch it drift up into the sky and dissolve ----------
-function startRelease() {
-  const el = $("#release"), box = $("#releaseText"), stage = $("#releaseWords"), go = $("#releaseGo");
-  el.hidden = false; el.classList.remove("done");
-  box.value = ""; box.hidden = false; stage.innerHTML = ""; stage.hidden = true;
-  $("#releaseAfter").hidden = true; $("#releaseForm").hidden = false;
-  setTimeout(() => box.focus({ preventScroll: true }), 300);
-  const close = () => { el.hidden = true; box.value = ""; stage.innerHTML = ""; };
-  $("#releaseCancel").onclick = close; $("#releaseDone").onclick = close;
-  go.onclick = () => {
-    const text = box.value.trim();
-    if (!text) return box.focus();
-    box.blur(); box.value = "";                                // never kept, never sent
-    $("#releaseForm").hidden = true; stage.hidden = false;
-    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    stage.innerHTML = [...text].map(ch => ch === " " ? " " : `<span>${esc(ch)}</span>`).join("");
-    const spans = [...stage.querySelectorAll("span")];
-    const total = Math.min(1400, spans.length * 14);
-    spans.forEach((sp, i) => {
-      if (reduced) { sp.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 1200, fill: "forwards" }); return; }
-      const dx = (Math.random() - 0.5) * 140, dy = -(180 + Math.random() * 260), rot = (Math.random() - 0.5) * 50;
-      sp.animate([
-        { transform: "translate(0,0) rotate(0)", opacity: 1, filter: "blur(0)" },
-        { transform: `translate(${dx * 0.4}px, ${dy * 0.35}px) rotate(${rot * 0.4}deg)`, opacity: 0.9, filter: "blur(.5px)", offset: 0.35 },
-        { transform: `translate(${dx}px, ${dy}px) rotate(${rot}deg) scale(.4)`, opacity: 0, filter: "blur(6px)" },
-      ], { duration: 2200, delay: (i / Math.max(1, spans.length)) * total, easing: "cubic-bezier(.3,.1,.3,1)", fill: "forwards" });
-    });
-    setTimeout(() => { sky.bloom(); stage.innerHTML = ""; stage.hidden = true; $("#releaseAfter").hidden = false; el.classList.add("done"); }, total + 2000);
-  };
-}
-
 // ---------- Share card ----------
 function wrap(ctx, text, maxW) {
   const words = text.split(" "), lines = []; let line = "";
@@ -725,8 +698,10 @@ async function renderShareImage(r, deck) {
 
   // Build the text blocks, then shrink everything together until it fits.
   const blocks = [];
-  blocks.push({ kind: "head", text: r.headline });
+  blocks.push({ kind: "head", text: (deck[0] && deck[0].title) || r.headline });
   for (const it of items) blocks.push({ kind: "item", kicker: it.kicker, title: it.title, meta: [it.pill, it.tech && it.tech.name].filter(Boolean).join("  ·  ") });
+  const ahead = deck.find(c => c.type === "ahead");
+  if (ahead && ahead.items.length) blocks.push({ kind: "item", kicker: "What's next", title: ahead.title, meta: ahead.items.map(e => `${e.day.split(",")[0]}: ${e.title}`).join("  ·  ") });
   if (line) blocks.push({ kind: "quote", text: line.text, author: line.author });
   const top = 640, bottom = H - 190;
   const layout = k => {
