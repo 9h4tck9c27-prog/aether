@@ -105,7 +105,7 @@ function dayName(d, now) {
   const part = d.getDate() <= 10 ? "early" : d.getDate() <= 20 ? "mid" : "late";
   return `${part} ${d.toLocaleDateString(undefined, { month: "long" })}`;
 }
-function on(name) { return /^(today|tomorrow|yesterday|early|mid|late|last )/.test(name) ? name : `on ${name}`; }
+function on(name) { return /^(today|tomorrow|yesterday|last )/.test(name) ? name : /^(early|mid|late) /.test(name) ? `in ${name}` : `on ${name}`; }
 function by(name) { return name === "today" ? "later today" : `by ${name}`; }
 
 // arc: { start: Date|null, peak: Date|null, end: Date|null, hours: bool }
@@ -154,7 +154,7 @@ export function memoryLine(entries, today, themesNow) {
   if (gap === 1 && lastB === "golden" && nowB === "golden") return "Two good days in a row. Let yourself trust it.";
   return null;
 }
-const THEME_NAME = { work: "Work", love: "Love", family: "Family", friends: "Your friendships", body: "Your body", mind: "What's on your mind", money: "Money", creative: "Your creative life", home: "Home" };
+const THEME_NAME = { work: "Work", love: "Love", family: "Family", friends: "Friendship", body: "Your body", mind: "What's on your mind", money: "Money", creative: "Your creative life", home: "Home" };
 
 // ---------- Opening line: their own word, said back to them ----------
 export const ECHO_TITLES = {

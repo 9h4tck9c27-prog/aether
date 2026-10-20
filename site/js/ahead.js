@@ -13,10 +13,12 @@ const SIGN_MOOD = {
   Libra: "gentler and more focused on balance", Scorpio: "deeper, more private and more honest", Sagittarius: "more adventurous and optimistic",
   Capricorn: "more serious and ambitious", Aquarius: "more independent and unconventional", Pisces: "dreamier and more tender",
 };
+// What each planet colours, as the subject of a sentence, with its verb agreeing (singular or plural).
 const PLANET_AREA = {
-  Sun: "the whole mood of the month", Mercury: "how everyone talks and plans", Venus: "love, pleasure and taste",
-  Mars: "drive and tempers", Jupiter: "luck and growth", Saturn: "pressure and responsibility",
-  Uranus: "surprises", Neptune: "dreams and intuition", Pluto: "deep change",
+  Mercury: ["Conversations and plans", "turn", "slow down"], Venus: ["Love, pleasure and taste", "turn", "slow down"],
+  Mars: ["Drive and tempers", "turn", "slow down"], Jupiter: ["Luck and growth", "turn", "slow down"],
+  Saturn: ["Pressure and responsibility", "turn", "slow down"], Uranus: ["Surprises", "turn", "slow down"],
+  Neptune: ["Dreams and intuition", "turn", "slow down"], Pluto: ["Deep change", "turns", "slows down"],
 };
 const RETRO_LINES = {
   Mercury: ["turns retrograde", "A three-week stretch for rereading, reconnecting and second drafts. Back things up and give plans extra time."],
@@ -30,9 +32,9 @@ const LUNATION = {
 };
 const NATAL_PLAIN = { Sun: "your sense of who you are", Moon: "your feelings", Mercury: "the way you think and talk", Venus: "your heart", Mars: "your inner fire", Ascendant: "the way you come across" };
 const TONE_PERSONAL = {
-  1: ["A supportive moment for {n}. A good day to lean into it.", "Things flow more easily for {n}. Say yes to what feels good."],
+  1: ["A supportive moment for {n}. A good day to lean into it.", "An easy, open day for {n}. Say yes to what feels good."],
   "-1": ["A day that may press on {n}. Go gently, and leave a little room in your plans.", "Some friction around {n}. Not a bad day, just one to take slowly."],
-  0: ["{N} gets turned up. Notice what comes to the surface.", "A strong day for {n}. Something may ask for your attention."],
+  0: ["The volume goes up on {n}. Notice what comes to the surface.", "A strong day for {n}. Something may ask for your attention."],
 };
 const TRANSITING = ["Sun", "Mercury", "Venus", "Mars", "Jupiter", "Saturn"];
 
@@ -58,14 +60,14 @@ export function whatsNext(natal, now = new Date()) {
         const sign = signOf(b[p].lon);
         events.push({ date: d, weight: p === "Sun" ? 6 : ["Mercury", "Venus", "Mars"].includes(p) ? 5 : 7,
           title: `${p === "Sun" ? "The Sun" : p} moves into ${sign}`,
-          text: p === "Sun" ? `A new season begins, and the month ahead feels ${SIGN_MOOD[sign]}.` : `${PLANET_AREA[p].charAt(0).toUpperCase() + PLANET_AREA[p].slice(1)} turn ${SIGN_MOOD[sign]}.` });
+          text: p === "Sun" ? `A new season begins, and the month ahead feels ${SIGN_MOOD[sign]}.` : `${PLANET_AREA[p][0]} ${PLANET_AREA[p][1]} ${SIGN_MOOD[sign]}.` });
       }
       if (!!a[p].retro !== !!b[p].retro) {
         const retro = !!b[p].retro;
         const line = RETRO_LINES[p];
         events.push({ date: d, weight: p === "Mercury" ? 9 : 6,
           title: `${p} ${retro ? "turns retrograde" : "turns direct"}`,
-          text: retro ? (line ? line[1] : `${PLANET_AREA[p].charAt(0).toUpperCase() + PLANET_AREA[p].slice(1)} slow down for review.`) : DIRECT_LINE.replace("turns direct. ", "") });
+          text: retro ? (line ? line[1] : `${PLANET_AREA[p][0]} ${PLANET_AREA[p][2]} for review.`) : DIRECT_LINE.replace("turns direct. ", "") });
       }
     }
   }
@@ -111,7 +113,7 @@ export function whatsNext(natal, now = new Date()) {
       const opts = TONE_PERSONAL[h], line = opts[(best.i + n.length) % opts.length];
       events.push({ date: days[best.i], weight: (t === "Sun" || t === "Mars" || t === "Venus" ? 7 : t === "Mercury" ? 6.5 : 6) + (n === "Sun" || n === "Moon" ? 1 : 0), personal: true,
         title: `${t === "Sun" ? "The Sun" : t} ${best.asp.verb} your ${n === "Ascendant" ? "rising sign" : n}`,
-        text: line.replace("{N}", NATAL_PLAIN[n].charAt(0).toUpperCase() + NATAL_PLAIN[n].slice(1)).replace("{n}", NATAL_PLAIN[n]) });
+        text: line.replace("{n}", NATAL_PLAIN[n]) });
     }
   }
   // Pick up to three: always include one personal moment if there is one.

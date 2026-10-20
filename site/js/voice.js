@@ -113,7 +113,7 @@ export const HOME_SUPPORT = {
     "Write down your dreams tonight. They may be trying to tell you something.",
     "You don't have to see the whole road. Just the next few steps.",
     "Being unsure is not the same as being lost.",
-    "Give yourself some time near water today, even a bath counts.",
+    "Give yourself some time near water today. Even a bath counts.",
     "Trust the feeling you can't quite explain.",
     "Let some things stay a mystery for now.",
     "Be careful who you lend your energy to today.",
@@ -235,7 +235,7 @@ export const ASPECT_DEFS = {
 export const NATAL_DEF = "Your natal chart is a map of where the planets were at the moment you were born.";
 export const RISING_DEF = "Your rising sign is the sign that was coming up over the horizon when you were born.";
 
-export const ASPECT_WORD = { conjunction: "meets", sextile: "sextile", square: "square", trine: "trine", opposition: "opposite" };
+export const ASPECT_WORD = { conjunction: "meets", sextile: "sextiles", square: "squares", trine: "trines", opposition: "opposes" };
 
 // Timing pill, plain.
 export function timingPill(days, building) {
@@ -281,7 +281,8 @@ export const NAKSHATRA_PLAIN = [
 export function togetherPlain(c) {
   if (!c) return "The sky everyone shares is calm today.";
   const tone = c.asp.harmony > 0 ? "flowing together" : c.asp.harmony < 0 ? "pulling against each other" : "blending into one";
-  return `For everyone today, ${PLAIN_PLANET[c.t]} and ${PLAIN_PLANET[c.n]} are ${tone}.`;
+  const SHORT = { Sun: "the spotlight", Moon: "moods", Mercury: "words", Venus: "love", Mars: "drive", Jupiter: "growth", Saturn: "pressure", Uranus: "surprises", Neptune: "dreams", Pluto: "deep change" };
+  return `For everyone today, ${SHORT[c.t]} and ${SHORT[c.n]} are ${tone}.`;
 }
 export function spaceWeatherPlain(kp) {
   if (kp == null) return null;

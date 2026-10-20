@@ -476,25 +476,23 @@ function techBlock(tech) {
   return `<details class="tech"><summary class="tech-name">${glyphs}<span>${esc(tech.name)}</span><span class="tech-more" aria-hidden="true">+</span></summary><p class="tech-text">${esc(tech.text)}</p></details>`;
 }
 
-// "Is this you?" on each personal card. The answer tunes which planets æther listens to for you.
+// "Did this feel true?" asked once, on the last card. The answer tunes which planets æther listens to for you.
 const RES_WEIGHT = { yes: 1, little: 0.4, no: -0.6 };
-function resCard(c) {
-  const done = (reading.entry.cardRes || {})[c.planet];
-  if (done) return `<div class="res-card"><span class="res-done">${done === "no" ? "noted. æther will listen closer." : "noted. that helps æther know you."}</span></div>`;
-  return `<div class="res-card" data-planet="${esc(c.planet)}"><span>is this you?</span><button type="button" data-res="yes">so me</button><button type="button" data-res="little">kinda</button><button type="button" data-res="no">nope</button></div>`;
+const resThanks = v => (v === "no" ? "noted. æther will listen closer next time." : "noted. that helps æther know you.");
+function resClose() {
+  const done = reading.entry.resonance;
+  if (done) return `<div class="res-card"><span class="res-done">${resThanks(done)}</span></div>`;
+  return `<div class="res-card" data-res-box><span>did this feel true?</span><button type="button" data-res="yes">so me</button><button type="button" data-res="little">kinda</button><button type="button" data-res="no">nope</button></div>`;
 }
 function bindCardRes(root) {
-  root.querySelectorAll(".res-card[data-planet] [data-res]").forEach(b => (b.onclick = () => {
-    const box = b.closest(".res-card"), planet = box.dataset.planet, v = b.dataset.res;
-    const en = reading.entry;
-    en.cardRes = { ...(en.cardRes || {}), [planet]: v };
-    if (!en.resonance) en.resonance = v;   // counts as the "did it feel true?" answer for this reading
-    store.set("entries", entries);
+  root.querySelectorAll("[data-res-box] [data-res]").forEach(b => (b.onclick = () => {
+    const box = b.closest(".res-card"), v = b.dataset.res, en = reading.entry;
+    en.resonance = v; store.set("entries", entries);
     prefs.resonance = prefs.resonance || {};
-    prefs.resonance[planet] = Math.max(-3, Math.min(3, (prefs.resonance[planet] || 0) + RES_WEIGHT[v]));
+    for (const p of en.planets || []) prefs.resonance[p] = Math.max(-3, Math.min(3, (prefs.resonance[p] || 0) + RES_WEIGHT[v]));
     store.set("prefs", prefs);
-    box.innerHTML = `<span class="res-done">${v === "no" ? "noted. æther will listen closer." : "noted. that helps æther know you."}</span>`;
-    box.removeAttribute("data-planet");
+    box.removeAttribute("data-res-box");
+    box.innerHTML = `<span class="res-done">${resThanks(v)}</span>`;
   }));
 }
 
@@ -515,8 +513,7 @@ function renderCard(c, i, r) {
       + rv(`<p class="pill">${esc(c.pill)}</p>`, d++)
       + rv(`<p class="lead">${esc(c.lead)}</p>`, d++)
       + (c.thread ? rv(`<p class="thread">${esc(c.thread)}</p>`, d++) : "")
-      + rv(techBlock(c.tech), d++)
-      + rv(resCard(c), d++);
+      + rv(techBlock(c.tech), d++);
   } else if (c.type === "reflect") {
     inner = kicker
       + rv(`<h2 class="card-title big question">${esc(c.title)}</h2>`, d++)
@@ -549,6 +546,7 @@ function renderCard(c, i, r) {
     inner = kicker
       + rv(`<blockquote class="closing-line">${esc(c.line.text)}</blockquote>`, d++)
       + (c.line.author ? rv(`<p class="cite">${esc(c.line.author)}${c.line.work ? `, <i>${esc(c.line.work)}</i>` : ""}</p>`, d++) : "")
+      + (reading.entry.planets ? rv(resClose(), d++) : "")
       + rv(`<div class="card-actions">
           <button class="primary share-btn" data-act="share"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4"/><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></svg>Share</button>
           <div class="row">${isStandalone() ? "" : `<button class="ghost" data-act="install">Add æther to home screen</button>`}<button class="ghost" data-act="save"${saved ? " disabled" : ""}>${saved ? "Saved to journal" : "Save to journal"}</button></div>
