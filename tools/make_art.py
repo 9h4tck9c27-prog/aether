@@ -6,13 +6,13 @@ root = pathlib.Path(__file__).resolve().parent.parent
 out = root / "site"
 (out / "icons").mkdir(parents=True, exist_ok=True)
 jobs = [
-    ("icon", 512, "icons/icon-512.png"),
-    ("icon", 192, "icons/icon-192.png"),
-    ("maskable", 512, "icons/icon-maskable-512.png"),
-    ("icon", 180, "icons/apple-touch-icon.png"),
-    ("icon", 32, "icons/favicon-32.png"),
-    ("og", 0, "og-image.png"),
-    ("square", 0, "og-square.png")  # then converted to og-square.jpg,
+    ("icon", 512, "icons/sticker-icon-512.png"),
+    ("icon", 192, "icons/sticker-icon-192.png"),
+    ("maskable", 512, "icons/sticker-icon-maskable-512.png"),
+    ("icon", 180, "icons/sticker-apple-touch-icon.png"),
+    ("icon", 32, "icons/sticker-favicon-32.png"),
+    ("og", 0, "og-sticker.png"),
+    ("square", 0, "og-sticker-square.png")  # then converted to og-square.jpg,
 ]
 with sync_playwright() as p:
     b = p.chromium.launch(args=["--allow-file-access-from-files"])

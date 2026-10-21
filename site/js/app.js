@@ -504,7 +504,7 @@ function renderCard(c, i, r) {
       + rv(`<h2 class="card-title big">${esc(c.title)}</h2>`, d++)
       + (c.quote ? rv(`<p class="quote">${esc(c.quote)}</p>`, d++) : "")
       + rv(`<p class="lead">${esc(c.lead)}</p>`, d++)
-      + (c.weather ? rv(`<p class="weather-line"><span class="pill">Outside: ${esc(c.weather.short)}</span> ${esc(c.weather.line)}</p>`, d++) : "")
+      + (c.weather ? rv(`<div class="weather-line"><span class="pill">Outside: ${esc(c.weather.short)}</span><span>${esc(c.weather.line)}</span></div>`, d++) : "")
       + rv(`<button class="tap-big" type="button" data-act="next"><span>Tap to continue</span><span class="chevs" aria-hidden="true"><i>›</i><i>›</i><i>›</i></span></button>`, d++);
   } else if (c.type === "transit") {
     inner = kicker
@@ -915,16 +915,18 @@ function maybeAskInstall() {
 function openInstall() {
   const share = '<svg viewBox="0 0 24 24"><path d="M12 15V3M8 7l4-4 4 4"/><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></svg>';
   const plus = '<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg>';
+  const dots = '<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg>';
   const body = isIOS ? `
       <div class="install-steps">
-        <div class="install-step"><span class="badge">${share}</span><p>Tap the Share button in Safari's toolbar.</p></div>
-        <div class="install-step"><span class="badge">${plus}</span><p>Scroll down and choose Add to Home Screen.</p></div>
+        <div class="install-step"><span class="badge">${dots}</span><p>Tap the menu button next to the address bar <small>(••• or ☰, at the bottom of Safari)</small></p></div>
+        <div class="install-step"><span class="badge">${share}</span><p>Tap <b>Share</b></p></div>
+        <div class="install-step"><span class="badge">${plus}</span><p>Tap <b>Add to Home Screen</b> <small>(you may need to tap View More first)</small></p></div>
       </div>
       <button class="ghost" id="notNow" style="width:100%">Not now</button>`
     : deferredPrompt ? `<button class="primary" id="installNow">Add æther</button><button class="ghost" id="notNow" style="width:100%;margin-top:10px">Not now</button>`
       : `<p>Use your browser's menu and choose Install app or Add to Home Screen.</p><button class="ghost" id="notNow" style="width:100%">Got it</button>`;
   openSheet(`
-    <img class="install-icon" src="/icons/icon-192.png" alt="">
+    <img class="install-icon" src="/icons/sticker-icon-192.png" alt="">
     <h2 id="sheetTitle">Keep æther on your home screen</h2>
     <p>It opens full-screen like an app, and your sky journal stays safer on this phone.</p>
     ${body}

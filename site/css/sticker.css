@@ -315,3 +315,10 @@ body.reading-mode .sphere-wrap { top: calc(var(--safe-top) + 64px); }
 .ahead-text { font-size: 15.5px; }
 .pill { font-size: 14px; }
 .next-hint { bottom: calc(var(--safe-bottom) + 14px); }
+
+/* Weather on the first card: the label sits on its own line, the sentence below it */
+.weather-line { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin: 2px 0 18px; font-size: 16.5px; }
+.weather-line .pill { margin: 0; }
+/* Install steps */
+.install-step .badge svg circle { fill: var(--cobalt); stroke: none; }
+.install-step p small { display: block; font-size: 13.5px; color: #555060; margin-top: 2px; }
