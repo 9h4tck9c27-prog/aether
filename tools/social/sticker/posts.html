@@ -1,0 +1,307 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!-- æther Instagram posts, Sticker club look. Rendered slide by slide by render_posts.py.
+     Feed slides are 1080x1350 (4:5); stories are 1080x1920 (9:16). -->
+<style>
+@font-face { font-family: "Unbounded"; font-weight: 200 900; src: url("../../../site/fonts/unbounded-latin-wght-normal.woff2") format("woff2"); }
+@font-face { font-family: "DM Sans"; font-weight: 100 1000; src: url("../../../site/fonts/dm-sans-latin-wght-normal.woff2") format("woff2"); }
+@font-face { font-family: "Caveat"; font-weight: 700; src: url("../../../site/fonts/caveat-latin-700-normal.woff2") format("woff2"); }
+:root { --ink: #141218; --pink: #FF6FAE; --yellow: #FFD84D; --mint: #6EE7B7; --cobalt: #3D3BFF; --lilac: #E9E2FF; --paper: #fff; --lp: #F1ECFF; }
+* { box-sizing: border-box; }
+body { margin: 0; background: #888; font-family: "DM Sans", sans-serif; color: var(--ink); }
+.slide { width: 1080px; height: 1350px; position: relative; overflow: hidden; padding: 80px 76px; display: flex; flex-direction: column; margin-bottom: 20px; }
+.slide.story { height: 1920px; padding: 200px 80px 260px; }
+.g-lilac { background: radial-gradient(rgba(20,18,24,.08) 3px, transparent 3.5px) 0 0 / 40px 40px, var(--lilac); }
+.g-pink { background: radial-gradient(rgba(20,18,24,.08) 3px, transparent 3.5px) 0 0 / 40px 40px, #FFD3E6; }
+.g-butter { background: radial-gradient(rgba(20,18,24,.08) 3px, transparent 3.5px) 0 0 / 40px 40px, #FFEDB8; }
+.g-mint { background: radial-gradient(rgba(20,18,24,.08) 3px, transparent 3.5px) 0 0 / 40px 40px, #D6F6E8; }
+.g-night { background: radial-gradient(rgba(255,255,255,.08) 3px, transparent 3.5px) 0 0 / 40px 40px, #1D1A3C; color: #fff; }
+.g-night .shadow-pop { --pop: var(--pink); }
+.label { width: fit-content; align-self: flex-start; font-family: "Unbounded"; font-weight: 700; font-size: 30px; text-transform: lowercase; background: var(--yellow); color: var(--ink); border: 5px solid var(--ink); border-radius: 999px; padding: 12px 30px; transform: rotate(-3deg); }
+.label.mint { background: var(--mint); } .label.pink { background: var(--pink); } .label.white { background: #fff; }
+h1 { font-family: "Unbounded"; font-weight: 800; font-size: 92px; line-height: 1.02; letter-spacing: -0.045em; margin: 0; }
+h2 { font-family: "Unbounded"; font-weight: 800; font-size: 66px; line-height: 1.05; letter-spacing: -0.04em; margin: 0; }
+.hand { font-family: "Caveat"; font-weight: 700; color: var(--cobalt); font-size: 62px; line-height: 1.02; transform: rotate(-1.5deg); }
+.g-night .hand { color: #C9BCFF; }
+.card { background: var(--paper); color: var(--ink); border: 6px solid var(--ink); border-radius: 56px; box-shadow: 16px 16px 0 var(--pop, var(--ink)); padding: 52px 56px; }
+.g-night .card { --pop: var(--pink); }
+.body { font-size: 40px; line-height: 1.38; color: #26232E; }
+.ticket { background: #fff; border: 5px solid var(--ink); border-radius: 36px; padding: 24px 32px 28px; display: flex; gap: 28px; align-items: center; color: var(--ink); }
+.ticket .day { flex: 0 0 auto; width: 118px; height: 118px; border-radius: 28px; border: 5px solid var(--ink); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: "Unbounded"; font-weight: 700; font-size: 24px; line-height: 1.1; }
+.ticket .day b { font-size: 42px; }
+.ticket .t { font-family: "Unbounded"; font-weight: 700; font-size: 34px; letter-spacing: -0.02em; line-height: 1.15; }
+.ticket .s { font-size: 30px; line-height: 1.3; color: #3A3644; margin-top: 4px; }
+.chip { display: inline-flex; align-items: center; gap: 16px; background: #fff; border: 5px solid var(--ink); border-radius: 26px; padding: 18px 26px; font-family: "Unbounded"; font-weight: 700; font-size: 31px; letter-spacing: -0.02em; box-shadow: 8px 8px 0 var(--ink); color: var(--ink); }
+.chip i { font-style: normal; width: 22px; height: 22px; border-radius: 50%; border: 4px solid var(--ink); flex: 0 0 auto; }
+.foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; }
+.brand { display: flex; align-items: center; gap: 16px; font-family: "Unbounded"; font-weight: 800; font-size: 40px; letter-spacing: -0.04em; }
+.brand img { width: 74px; }
+.url { font-family: "Unbounded"; font-weight: 700; font-size: 26px; background: var(--ink); color: #fff; border-radius: 999px; padding: 14px 26px; }
+.g-night .url { background: #fff; color: var(--ink); }
+.count { font-family: "Unbounded"; font-weight: 700; font-size: 26px; opacity: .7; }
+.cta { display: inline-flex; align-items: center; gap: 18px; background: var(--yellow); border: 6px solid var(--ink); border-radius: 999px; box-shadow: 12px 12px 0 var(--ink); padding: 30px 52px; font-family: "Unbounded"; font-weight: 700; font-size: 42px; color: var(--ink); }
+.list { display: flex; flex-direction: column; gap: 40px; margin: 0; padding: 0; list-style: none; }
+.list li { display: flex; gap: 26px; align-items: flex-start; font-size: 52px; line-height: 1.22; }
+.list li::before { content: ""; flex: 0 0 auto; width: 32px; height: 32px; margin-top: 16px; border-radius: 50%; border: 5px solid var(--ink); background: var(--b, var(--mint)); }
+.bubble { align-self: flex-start; max-width: 78%; background: #fff; border: 5px solid var(--ink); border-radius: 44px 44px 44px 12px; padding: 26px 34px; font-size: 40px; line-height: 1.3; box-shadow: 8px 8px 0 var(--ink); color: var(--ink); }
+.bubble.me { align-self: flex-end; background: var(--cobalt); color: #fff; border-radius: 44px 44px 12px 44px; }
+.phone { border: 8px solid var(--ink); border-radius: 64px; overflow: hidden; box-shadow: 18px 18px 0 var(--ink); background: #fff; }
+.phone img { display: block; width: 100%; }
+.abs { position: absolute; }
+.vs { display: grid; gap: 34px; }
+.vs .card { padding: 40px 48px; }
+.vs .who { font-family: "Unbounded"; font-weight: 700; font-size: 28px; text-transform: lowercase; display: inline-block; border: 4px solid var(--ink); border-radius: 999px; padding: 6px 20px; margin-bottom: 18px; }
+.vs .line { font-family: "Unbounded"; font-weight: 800; font-size: 50px; line-height: 1.12; letter-spacing: -0.035em; }
+.moon { width: 300px; height: 300px; border-radius: 50%; background: var(--yellow); border: 8px solid var(--ink); box-shadow: 16px 16px 0 var(--ink), inset -26px -22px 0 rgba(0,0,0,.08); }
+.moon:not(.abs) { position: relative; }
+.moon::before, .moon::after { content: ""; position: absolute; border-radius: 50%; background: rgba(20,18,24,.12); }
+.moon::before { width: 64px; height: 64px; left: 70px; top: 80px; } .moon::after { width: 40px; height: 40px; left: 170px; top: 170px; }
+</style></head>
+<body>
+<div id="slides"></div>
+<script>
+// ---------- Sticker art, drawn to images ----------
+const INK = "#141218", PINK = "#FF6FAE", YEL = "#FFD84D", MINT = "#6EE7B7", COB = "#3D3BFF";
+function globeURL(size, { edge = INK, detail = true } = {}) {
+  const c = document.createElement("canvas"); c.width = c.height = size; const g = c.getContext("2d");
+  const cx = size / 2, cy = size / 2, R = size * 0.27, lw = Math.max(2, R * 0.055), rx = R * 1.62, ry = R * 0.46, rot = -0.24;
+  const ring = (a0, a1) => { g.save(); g.translate(cx, cy); g.rotate(rot); g.lineCap = "round";
+    g.strokeStyle = edge; g.lineWidth = R * 0.26; g.beginPath(); g.ellipse(0, 0, rx, ry, 0, a0, a1); g.stroke();
+    g.strokeStyle = PINK; g.lineWidth = R * 0.26 - lw * 2.2; g.beginPath(); g.ellipse(0, 0, rx, ry, 0, a0, a1); g.stroke(); g.restore(); };
+  const at = a => { const x = Math.cos(a) * rx, y = Math.sin(a) * ry; return [cx + x * Math.cos(rot) - y * Math.sin(rot), cy + x * Math.sin(rot) + y * Math.cos(rot)]; };
+  const dot = (a, r, col) => { const [x, y] = at(a); g.beginPath(); g.arc(x, y, r, 0, 7); g.fillStyle = col; g.fill(); g.lineWidth = lw * 0.9; g.strokeStyle = edge; g.stroke(); };
+  g.fillStyle = edge; g.beginPath(); g.arc(cx + R * 0.07, cy + R * 0.07, R + lw / 2, 0, 7); g.fill();
+  ring(Math.PI * 1.02, Math.PI * 1.98); if (detail) dot(Math.PI * 1.32, R * 0.13, MINT);
+  g.beginPath(); g.arc(cx, cy, R, 0, 7); g.fillStyle = COB; g.fill(); g.lineWidth = lw; g.strokeStyle = edge; g.stroke();
+  g.strokeStyle = "rgba(255,255,255,.55)"; g.lineWidth = R * 0.11; g.lineCap = "round"; g.beginPath(); g.arc(cx, cy, R * 0.72, Math.PI * 1.08, Math.PI * 1.44); g.stroke();
+  ring(-0.02, Math.PI + 0.02); if (detail) { dot(Math.PI * 0.22, R * 0.17, YEL); dot(Math.PI * 0.72, R * 0.12, "#fff"); }
+  return c.toDataURL("image/png");
+}
+function sparkSVG(size, col, rot = 0) {
+  return `<svg width="${size}" height="${size}" viewBox="-110 -110 220 220" style="transform:rotate(${rot}deg)"><path d="M0 -100 C10 -30 30 -10 100 0 C30 10 10 30 0 100 C-10 30 -30 10 -100 0 C-30 -10 -10 -30 0 -100Z" fill="${col}" stroke="${INK}" stroke-width="11" stroke-linejoin="round"/></svg>`;
+}
+const G = globeURL(900), GW = globeURL(900, { edge: "#fff" }), GS = globeURL(160, { detail: false }), GSW = globeURL(160, { detail: false, edge: "#fff" });
+const foot = (night, count) => `<div class="foot"><div class="brand"><img src="${night ? GSW : GS}">æther</div>${count ? `<span class="count">${count}</span>` : `<span class="url">myaether.info</span>`}</div>`;
+const APP = "file:///tmp/claude-0/-home-claude/150f6e33-1f20-550a-9560-046766b78427/scratchpad/promo_app/";
+
+// ---------- The week's slides ----------
+const S = [];
+const add = (name, cls, html, story = false) => S.push({ name, cls: cls + (story ? " story" : ""), html });
+
+// FRI 23: Scorpio season + the week ahead + what æther reads + CTA
+add("fri-1", "g-night", `
+  <span class="label pink">scorpio season</span>
+  <h1 style="margin-top:56px">it's scorpio season.<br>things just got <span style="color:#FF6FAE">deep.</span></h1>
+  <div class="hand" style="margin-top:34px;font-size:68px">and this week's sky<br>is <u>busy</u> →</div>
+  <img class="abs" src="${GW}" style="width:820px;right:-110px;bottom:70px">
+  ${foot(true, "1 / 4")}`);
+add("fri-2", "g-night", `
+  <span class="label">the week in stickers</span>
+  <div style="display:flex;flex-direction:column;gap:22px;margin-top:46px">
+    <div class="ticket"><div class="day" style="background:#C9B8FF">FRI<b>23</b></div><div><div class="t">the sun moves into scorpio</div><div class="s">deep talks over small talk.</div></div></div>
+    <div class="ticket"><div class="day" style="background:#FF6FAE">FRI<b>23</b></div><div><div class="t">the sun meets venus</div><div class="s">notice what (and who) you truly value.</div></div></div>
+    <div class="ticket"><div class="day" style="background:#FFD84D">SAT<b>24</b></div><div><div class="t">mercury goes retrograde</div><div class="s">until nov 13. back up your phone.</div></div></div>
+    <div class="ticket"><div class="day" style="background:#6EE7B7">SUN<b>25</b></div><div><div class="t">full moon in taurus</div><div class="s">feelings peak, then finally settle.</div></div></div>
+    <div class="ticket"><div class="day" style="background:#fff">MON<b>26</b></div><div><div class="t">the sun squares pluto</div><div class="s">power struggles? don't take the bait.</div></div></div>
+  </div>
+  ${foot(true, "2 / 4")}`);
+add("fri-3", "g-lilac", `
+  <span class="label mint">how æther reads your day</span>
+  <h2 style="margin-top:40px;font-size:62px">not a horoscope.<br>7 sources at once.</h2>
+  <div style="display:flex;flex-wrap:wrap;gap:20px 18px;margin-top:42px">
+    <span class="chip" style="transform:rotate(-2deg)"><i style="background:#FFD84D"></i>10 planets, live</span>
+    <span class="chip" style="transform:rotate(1.5deg)"><i style="background:#FF6FAE"></i>your birth chart</span>
+    <span class="chip" style="transform:rotate(-1deg)"><i style="background:#3D3BFF"></i>440 angles checked</span>
+    <span class="chip" style="transform:rotate(2deg)"><i style="background:#6EE7B7"></i>27 vedic lunar mansions</span>
+    <span class="chip" style="transform:rotate(-2deg)"><i style="background:#FFB020"></i>the exact moon phase</span>
+    <span class="chip" style="transform:rotate(1deg)"><i style="background:#7DE3FF"></i>live space weather (NOAA)</span>
+    <span class="chip" style="transform:rotate(-1.5deg)"><i style="background:#fff"></i>the weather outside your window</span>
+    <span class="chip" style="transform:rotate(1.5deg);background:#FFD84D"><i style="background:#FF6FAE"></i>+ how YOU say today feels</span>
+  </div>
+  <div class="hand" style="margin-top:36px;font-size:56px">all of it, in one plain sentence about your day.</div>
+  ${foot(false, "3 / 4")}`);
+add("fri-4", "g-pink", `
+  <span class="label white">your turn</span>
+  <h1 style="margin-top:56px">what's the sky saying about <span style="color:#3D3BFF">your</span> week?</h1>
+  <div style="margin-top:60px"><span class="cta">get your free reading ›</span></div>
+  <div class="body" style="margin-top:46px;font-weight:600;max-width:560px">no account. no ads.<br>new every day.<br>link in bio.</div>
+  <img class="abs" src="${G}" style="width:560px;right:-60px;bottom:90px;transform:rotate(8deg)">
+  ${foot(false)}`);
+
+// SAT 24: Mercury retrograde survival guide
+add("sat-1", "g-butter", `
+  <span class="label pink">psa</span>
+  <h1 style="margin-top:56px">mercury retrograde starts today.</h1>
+  <div class="hand" style="margin-top:30px;font-size:72px">until nov 13. breathe.</div>
+  <img class="abs" src="${G}" style="width:760px;right:-120px;bottom:110px;transform:rotate(-14deg)">
+  ${foot(false, "1 / 5")}`);
+add("sat-2", "g-butter", `
+  <span class="label">what's actually happening</span>
+  <div class="card" style="margin-top:56px">
+    <h2 style="font-size:58px">mercury isn't really moving backwards.</h2>
+    <p class="body" style="margin:28px 0 0;font-size:44px">From Earth it <b>looks</b> like it is, for about three weeks. Astrologers read that as words, plans and tech going a little glitchy: crossed wires, delays, old stuff coming back around.</p>
+  </div>
+  <div class="hand" style="margin-top:60px;font-size:76px">it's a slow-down,<br>not a disaster.</div>
+  ${foot(false, "2 / 5")}`);
+add("sat-3", "g-mint", `
+  <span class="label mint">do</span>
+  <h2 style="margin-top:40px">the retrograde to-do list</h2>
+  <ul class="list" style="margin-top:46px">
+    <li>reread before you hit send</li>
+    <li>back up your phone (yes, today)</li>
+    <li>finish the thing you started in august</li>
+    <li>text the old friend you miss</li>
+    <li>leave extra time for travel plans</li>
+  </ul>
+  ${foot(false, "3 / 5")}`);
+add("sat-4", "g-pink", `
+  <span class="label pink">maybe don't</span>
+  <h2 style="margin-top:40px">the retrograde "maybe not"</h2>
+  <ul class="list" style="margin-top:46px;--b:#FF6FAE">
+    <li style="--b:#FF6FAE">sign anything big without reading it twice</li>
+    <li style="--b:#FF6FAE">reply to your ex at 2am</li>
+    <li style="--b:#FF6FAE">impulse-buy the expensive gadget</li>
+    <li style="--b:#FF6FAE">assume "ok." means what you think it means</li>
+  </ul>
+  ${foot(false, "4 / 5")}`);
+add("sat-5", "g-lilac", `
+  <span class="label white">how will it hit you?</span>
+  <h1 style="margin-top:56px;font-size:84px">it depends on your chart.</h1>
+  <p class="body" style="margin:40px 0 0;max-width:880px;font-size:48px">æther lays today's sky over the one you were born under, and tells you when it peaks and when it fades.</p>
+  <div style="margin-top:52px"><span class="cta">free reading · link in bio</span></div>
+  ${foot(false)}`);
+
+// SUN 25: Full Moon in Taurus (feed + story)
+add("sun-1", "g-pink", `
+  <span class="label">tonight · 9:12pm PT</span>
+  <h1 style="margin-top:56px">full moon<br>in taurus.</h1>
+  <div class="hand" style="margin-top:40px;font-size:68px">slow down. eat something good.<br>say what you're grateful for.</div>
+  <div class="moon abs" style="right:90px;top:120px;width:230px;height:230px"></div>
+  <div class="card" style="margin-top:70px;padding:44px 48px;display:grid;grid-template-columns:1fr 1fr;gap:20px 30px">
+    <div><div class="label mint" style="font-size:24px;padding:8px 20px">let go of</div><p class="body" style="margin:18px 0 0;font-size:44px">rushing. proving. doomscrolling.</p></div>
+    <div><div class="label" style="font-size:24px;padding:8px 20px">keep</div><p class="body" style="margin:18px 0 0;font-size:44px">what feels safe, soft and yours.</p></div>
+  </div>
+  ${foot(false)}`);
+add("sun-story", "g-night", `
+  <span class="label pink" style="font-size:36px">tonight</span>
+  <h1 style="margin-top:60px;font-size:110px">full moon<br>in taurus.</h1>
+  <div class="moon" style="margin:90px 0 0 300px;width:360px;height:360px"></div>
+  <div class="card" style="margin-top:100px">
+    <div class="body" style="font-family:Unbounded;font-weight:700;font-size:40px;line-height:1.5">9:12pm PT · 12:12am ET<br>4:12am UK (Monday)</div>
+  </div>
+  <div class="hand" style="margin-top:50px;font-size:70px">what are you ready to let go of?</div>
+  ${foot(true)}`, true);
+
+// MON 26: Sun square Pluto
+add("mon-1", "g-lilac", `
+  <span class="label white">monday, oct 26</span>
+  <h1 style="margin-top:56px;font-size:86px">if today feels intense, it's not just you.</h1>
+  <div class="card" style="margin-top:56px">
+    <div class="label pink" style="font-size:24px;padding:8px 22px">the sun squares pluto · exact this morning</div>
+    <p class="body" style="margin:28px 0 0;font-size:46px">Power struggles, big feelings, old stuff resurfacing. Don't take the bait. Let it pass through you.</p>
+  </div>
+  <div class="hand" style="margin-top:60px;font-size:76px">it's the weather, not you.</div>
+  ${foot(false)}`);
+
+// TUE 27: what æther is, with real screenshots
+const shot = (f, w, rot, extra = "") => `<div class="phone" style="width:${w}px;transform:rotate(${rot}deg);${extra}"><img src="${APP}${f}"></div>`;
+add("tue-1", "g-mint", `
+  <span class="label mint">meet æther</span>
+  <h2 style="margin-top:40px;font-size:62px">a free daily reading that actually knows your chart.</h2>
+  <div style="display:flex;gap:40px;margin-top:56px;align-items:flex-start">
+    ${shot("day_soft_home.png", 340, -3)}
+    <div style="flex:1;display:flex;flex-direction:column;gap:28px;padding-top:30px">
+      <div class="hand" style="font-size:60px">how today feels, in one line ↙</div>
+      <div class="hand" style="font-size:60px">the astrology behind it, in small print</div>
+    </div>
+  </div>
+  ${foot(false, "1 / 4")}`);
+add("tue-2", "g-lilac", `
+  <span class="label">it explains itself</span>
+  <div style="display:flex;gap:40px;margin-top:50px;align-items:flex-start">
+    ${shot("day_soft_card1.png", 420, 2)}
+    <div style="flex:1;display:flex;flex-direction:column;gap:34px;padding-top:40px">
+      <div class="hand" style="font-size:60px">what's happening</div>
+      <div class="hand" style="font-size:60px">when it peaks</div>
+      <div class="hand" style="font-size:60px">when it fades</div>
+      <div class="hand" style="font-size:60px">and what to actually do about it.</div>
+    </div>
+  </div>
+  ${foot(false, "2 / 4")}`);
+add("tue-3", "g-mint", `
+  <span class="label pink">it looks ahead</span>
+  <div style="display:flex;gap:40px;margin-top:50px;align-items:flex-start">
+    <div style="flex:1;display:flex;flex-direction:column;gap:34px;padding-top:60px">
+      <div class="hand" style="font-size:60px">the next 7 days of real sky</div>
+      <div class="hand" style="font-size:60px">plus the one moment that's just for you →</div>
+    </div>
+    ${shot("day_soft_card4.png", 420, -2)}
+  </div>
+  ${foot(false, "3 / 4")}`);
+add("tue-4", "g-pink", `
+  <span class="label white">2 minutes a day</span>
+  <h1 style="margin-top:56px;font-size:88px">free.<br>no account.<br>no ads.</h1>
+  <div class="hand" style="margin-top:34px">your words never leave your phone.</div>
+  <div style="margin-top:56px"><span class="cta">myaether.info ›</span></div>
+  <img class="abs" src="${G}" style="width:600px;right:-90px;bottom:170px;transform:rotate(10deg)">
+  ${foot(false, "4 / 4")}`);
+
+// WED 28: soft vs real talk (feed + poll story)
+add("wed-1", "g-night", `
+  <span class="label pink">same sky, two voices</span>
+  <h1 style="margin-top:56px;font-size:88px">soft or real talk?</h1>
+  <div class="vs" style="margin-top:56px">
+    <div class="card"><span class="who" style="background:#F1ECFF">soft</span><div class="line">Messages may get crossed. Read it twice before you send.</div></div>
+    <div class="card" style="transform:rotate(-1deg)"><span class="who" style="background:#FFD84D">real talk</span><div class="line">reread before you hit send. twice.</div></div>
+  </div>
+  ${foot(true, "1 / 3")}`);
+add("wed-2", "g-night", `
+  <span class="label">a mars day</span>
+  <div class="vs" style="margin-top:56px">
+    <div class="card"><span class="who" style="background:#F1ECFF">soft</span><div class="line">Your fuse may be short today. Take a breath before you react.</div></div>
+    <div class="card" style="transform:rotate(1deg)"><span class="who" style="background:#FFD84D">real talk</span><div class="line">short fuse alert. breathe first, reply later.</div></div>
+  </div>
+  <div class="hand" style="margin-top:50px">which one sounds like your best friend?</div>
+  ${foot(true, "2 / 3")}`);
+add("wed-3", "g-lilac", `
+  <span class="label mint">your call</span>
+  <h1 style="margin-top:56px;font-size:84px">switch the voice anytime.</h1>
+  <p class="body" style="margin:40px 0 0;max-width:880px;font-size:48px">Same honest sky, same real astrology. You pick how it talks to you.</p>
+  <div style="margin-top:52px"><span class="cta">try both · link in bio</span></div>
+  ${foot(false, "3 / 3")}`);
+add("wed-story", "g-lilac", `
+  <span class="label pink" style="font-size:36px">quick poll</span>
+  <h1 style="margin-top:60px;font-size:104px">how should the sky talk to you?</h1>
+  <div class="card" style="margin-top:80px;padding:44px 50px"><div class="vs" style="display:block"><span class="who" style="background:#F1ECFF">soft</span><div class="line" style="font-size:52px">Messages may get crossed. Read it twice before you send.</div></div></div>
+  <div class="card" style="margin-top:44px;padding:44px 50px;transform:rotate(-1deg)"><div class="vs" style="display:block"><span class="who" style="background:#FFD84D">real talk</span><div class="line" style="font-size:52px">reread before you hit send. twice.</div></div></div>
+  <div class="hand" style="margin-top:60px;font-size:64px">↓ add the poll sticker here ↓</div>
+  ${foot(false)}`, true);
+
+// THU 29: Moon in Gemini + Mercury retrograde, tag-a-friend
+add("thu-1", "g-pink", `
+  <span class="label white">thursday energy</span>
+  <h2 style="margin-top:40px;font-size:64px">moon in gemini<br>+ mercury retrograde =</h2>
+  <div style="display:flex;flex-direction:column;gap:30px;margin-top:56px">
+    <div class="bubble">wait what did you mean by "ok."</div>
+    <div class="bubble me">i typed a whole paragraph and deleted it</div>
+    <div class="bubble">sending this to the group chat</div>
+    <div class="bubble me">no the OTHER group chat</div>
+  </div>
+  <div class="hand" style="margin-top:46px">tag the friend who triple texts.</div>
+  ${foot(false)}`);
+
+// FRI story: Scorpio season starts today
+add("fri-story", "g-night", `
+  <span class="label pink" style="font-size:36px">today</span>
+  <h1 style="margin-top:60px;font-size:112px">scorpio season starts.</h1>
+  <div class="hand" style="margin-top:44px;font-size:74px">and tonight the sun meets venus.</div>
+  <img src="${GW}" style="width:760px;margin:0 0 0 80px">
+  <div style="margin-top:20px"><span class="cta" style="font-size:40px">what's yours? link in bio</span></div>
+  ${foot(true)}`, true);
+
+document.getElementById("slides").innerHTML = S.map(s => `<section class="slide ${s.cls}" id="${s.name}">${s.html}</section>`).join("");
+Promise.all(['800 64px "Unbounded"', '700 30px "DM Sans"', '700 40px "Caveat"'].map(f => document.fonts.load(f))).then(() => {
+  Promise.all([...document.images].map(i => i.decode().catch(() => {}))).then(() => { document.title = "ready"; });
+});
+</script>
+</body></html>
