@@ -10,7 +10,6 @@ import { REAL_HOME_HEADLINES } from "./voice-real.js";
 const A = window.Astronomy;
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const TIP_URL = "https://ko-fi.com/aetherapp";
 const SITE = "https://myaether.info";
 const INSTAGRAM = "https://www.instagram.com/_aether.aether_";
 const IG_HANDLE = "@_aether.aether_";
@@ -550,8 +549,7 @@ function renderCard(c, i, r) {
           <button class="primary share-btn" data-act="share"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4"/><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></svg>Share</button>
           <div class="row">${isStandalone() ? "" : `<button class="ghost" data-act="install">Add æther to home screen</button>`}<button class="ghost" data-act="save"${saved ? " disabled" : ""}>${saved ? "Saved to journal" : "Save to journal"}</button></div>
           ${c.bucket !== "golden" ? `<button class="breathe-btn" data-act="breathe"><span class="breathe-dot" aria-hidden="true"></span>${c.bucket === "heavy" ? "Take a slow breath with the sky" : "Take a quiet minute to settle"}</button>` : ""}
-        </div>`, d++)
-      + (c.bucket === "golden" ? rv(`<div class="card-tip"><button class="tip-btn" type="button"><span class="tip-heart" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20.5s-7.5-4.6-7.5-10.3A4.3 4.3 0 0 1 12 7.4a4.3 4.3 0 0 1 7.5 2.8c0 5.7-7.5 10.3-7.5 10.3z"/></svg></span><span class="tip-text"><b>Chip in to keep æther free</b><small>No ads, no paywall. Tips keep the sky turning.</small></span><span class="tip-arrow" aria-hidden="true">›</span></button></div>`, d++) : "");
+        </div>`, d++);
   }
   return `<article class="card card-${c.type}" aria-roledescription="card" aria-label="Card ${i + 1} of ${reading.deck.length}"><div class="card-inner"><div class="card-content">${inner}</div></div></article>`;
 }
@@ -961,7 +959,6 @@ function openMenu() {
         <div class="chips" id="mPhase" style="margin-top:10px">${phases.map(p => `<button type="button" class="chip" aria-pressed="${p === cur}" data-v="${p}">${p}</button>`).join("")}</div>
       </div>
       <a class="menu-item" href="${INSTAGRAM}" target="_blank" rel="noopener">${ic.share.replace(/<path[\s\S]*$/, '<rect x="4" y="4" width="16" height="16" rx="5"/><circle cx="12" cy="12" r="3.6"/><circle cx="17" cy="7" r=".6"/></svg>')}<span>Follow on Instagram<small>${IG_HANDLE}</small></span></a>
-      <button class="menu-item" id="mTip">${ic.heart}<span>Chip in<small>æther is free, with no ads and no paywall</small></span></button>
       <button class="menu-item" id="mEdit">${ic.edit}<span>Edit birth details</span></button>
       <button class="menu-item" id="mErase">${ic.trash}<span>Erase everything on this phone</span></button>
       <a class="menu-item" href="mailto:aetherapp@icloud.com?subject=%C3%86ther%20feedback">${ic.share.replace(/<path[\s\S]*$/, '<path d="M4 6h16v12H4z"/><path d="M4 7l8 6 8-6"/></svg>')}<span>Send feedback<small>Ideas, bugs, kind words: we read everything</small></span></a>
@@ -977,7 +974,6 @@ function openMenu() {
     $("#mTone").querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
   };
   const inst = $("#mInstall"); if (inst) inst.onclick = openInstall;
-  $("#mTip").onclick = openTip;
   $("#mPhase").onclick = e => {
     const b = e.target.closest(".chip"); if (!b) return;
     phaseOverride = b.dataset.v === "auto" ? null : b.dataset.v;
@@ -1000,16 +996,10 @@ function openMenu() {
   };
 }
 
-function openTip(e) {
-  if (e) e.preventDefault();
-  open(TIP_URL, "_blank", "noopener");
-}
-
 // ---------- Wiring ----------
 $("#checkinBtn").onclick = () => openCheckin();
 $("#journalBtn").onclick = openJournal;
 $("#menuBtn").onclick = openMenu;
-document.addEventListener("click", e => { if (e.target.closest(".tip-link, .tip-btn")) openTip(e); });
 document.addEventListener("visibilitychange", () => { if (!document.hidden) { applyPhase(); renderHome(); } });
 
 if (profile) { natal = natalChart(profile); sky.setNatal(natal.pos, natal.asc); renderHome(); }
